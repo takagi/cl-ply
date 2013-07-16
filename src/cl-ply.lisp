@@ -113,10 +113,7 @@
 
 (defun plyfile-element (plyfile name)
   (let ((raw-elements (plyfile-raw-elements plyfile)))
-    (let ((element (cdr (assoc name raw-elements :test #'string=))))
-      (unless element
-        (error "element does not exist: ~A" name))
-      element)))
+    (cdr (assoc name raw-elements :test #'string=))))
 
 (defun plyfile-element-names (plyfile)
   (mapcar #'element-name (plyfile-elements plyfile)))
@@ -127,7 +124,8 @@
 (defun plyfile-current-element (plyfile)
   (let* ((state (plyfile-state plyfile))
          (current-element-name (state-current-element-name state)))
-    (plyfile-element plyfile current-element-name)))
+    (or (plyfile-element plyfile current-element-name)
+        (error "element does not exist: ~S" current-element-name))))
 
 
 (defun plyfile-current-element-name (plyfile)
@@ -153,8 +151,10 @@
         (error "given element already exists: ~A" name))
       (setf raw-elements (acons-last name element raw-elements)))))
 
-(defun plyfile-add-property (plyfile element header)
-  (let ((element (plyfile-element plyfile element)))
+(defun plyfile-add-property (plyfile current-element header)
+  (let ((element (plyfile-element plyfile current-element)))
+    (unless element
+      (error "element does not exist: ~S" current-element))
     (element-add-property element header)))
 
 (defun plyfile-add-comment (plyfile header)
@@ -260,21 +260,37 @@
                  :size (element-header-size header)))
 
 (defun element-add-property (element header)
+  (let ((property (make-property header)))
+    (if (scalar-property-p property)
+        (element-add-scalar-property element property)
+        (element-add-list-property element property))))
+
+(defun element-add-scalar-property (element property)
   (symbol-macrolet ((raw-properties (element-raw-properties element)))
-    (let ((name     (property-header-name header))
-          (property (make-property header)))
-      (unless (null (assoc name raw-properties :test #'string=))
+    (let ((name (scalar-property-name property)))
+      (unless (null (element-property element name))
         (error "given property already exists: ~A" name))
-      (when (element-scalar-properties-p element)
-        (unless (scalar-property-p property)
-          (error
-           "element with scalar property can have scalar properties only")))
-      (when (element-list-properties-p element)
+      (unless (not (element-list-properties-p element))
+        (error "element can have one list property at most"))
+      (setf raw-properties (acons-last name property raw-properties)))))
+
+(defun element-add-list-property (element property)
+  (symbol-macrolet ((raw-properties (element-raw-properties element)))
+    (let ((name (list-property-name property)))
+      (unless (null (element-property element name))
+        (error "given property already exists: ~A" name))
+      (unless (not (element-scalar-properties-p element))
+        (error "element with scalar property can have scalar properties only"))
+      (unless (not (element-list-properties-p element))
         (error "element can have one list property at most"))
       (setf raw-properties (acons-last name property raw-properties)))))
 
 (defun element-properties (element)
   (mapcar #'cdr (element-raw-properties element)))
+
+(defun element-property (element name)
+  (let ((raw-properties (element-raw-properties element)))
+    (cdr (assoc name raw-properties :test #'string=))))
 
 (defun element-scalar-properties-p (element)
   (let ((first-property (first (element-properties element))))
@@ -309,15 +325,6 @@
      (make-list-property :count-type (list-property-header-count-type header)
                          :element-type (list-property-header-element-type header)
                          :name (list-property-header-name header)))))
-
-(defun property-p (property)
-  (or (scalar-property-p property)
-      (list-property-p property)))
-
-(defun property-name (property)
-  (cond
-    ((scalar-property-p property) (scalar-property-name property))
-    ((list-property-p property)   (list-property-name property))))
 
 
 ;;;
@@ -513,12 +520,6 @@
 (defun property-header-p (header)
   (or (scalar-property-header-p header)
       (list-property-header-p header)))
-
-(defun property-header-name (header)
-  (assert (property-header-p header))
-  (cond
-    ((scalar-property-header-p header) (scalar-property-header-name header))
-    ((list-property-header-p header)   (list-property-header-name header))))
 
 
 ;;;

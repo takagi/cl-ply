@@ -214,7 +214,8 @@ end_header
     (cl-ply::plyfile-add-property plyfile "vertex" header))
   ;; test order of properties
   (let ((element (car (cl-ply::plyfile-elements plyfile))))
-    (is (mapcar #'cl-ply::property-name (cl-ply::element-properties element))
+    (is (mapcar #'cl-ply::scalar-property-name
+                (cl-ply::element-properties element))
         '("x" "y")))
   ;; test second property
   (let* ((element (car (cl-ply::plyfile-elements plyfile)))
