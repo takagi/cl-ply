@@ -12,6 +12,12 @@
 ;;; test reading Ply file
 ;;;
 
+;;; test APPEND-EXTENSION-IF-NECESSARY function
+(is (cl-ply::append-extension-if-necessary "foobar.ply") "foobar.ply")
+(is (cl-ply::append-extension-if-necessary "foobar") "foobar.ply")
+(is (cl-ply::append-extension-if-necessary "foo") "foo.ply")
+
+;;; test PLY-READ function
 (let ((str "ply
 format ascii 1.0
 comment foo
