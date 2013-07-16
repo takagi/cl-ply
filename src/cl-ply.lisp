@@ -185,10 +185,9 @@
 ;;; procedures to read properties for current element
 
 (defun plyfile-read-properties (plyfile)
-  (unless (plyfile-current-state-p plyfile
-                                   :reading
-                                   (plyfile-current-element-name plyfile))
-    (error "plyfile is not in :reading state"))
+  (let ((current-element-name (plyfile-current-element-name plyfile)))
+    (unless (plyfile-current-state-p plyfile :reading current-element-name)
+      (error "plyfile is not in :reading state")))
   (let ((element (plyfile-current-element plyfile)))
     (cond
       ((element-scalar-properties-p element) (read-scalar-properties plyfile))
