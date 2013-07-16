@@ -98,7 +98,7 @@
 ;;;
 
 (defstruct plyfile
-  (stream :read-only)
+  (stream nil :read-only t)
   state
   file-type
   version
@@ -251,8 +251,8 @@
 ;;;
 
 (defstruct (element (:constructor %make-element))
-  (name :read-only)
-  (size :read-only)
+  (name nil :read-only t)
+  (size nil :read-only t)
   raw-properties)                       ; alist { name -> property }
 
 (defun make-element (header)
@@ -336,7 +336,7 @@
 ;;;
 
 (defstruct (state (:constructor %make-state))
-  (name :read-only)
+  name
   element-names)
 
 (defun make-state (element-names)
@@ -429,8 +429,8 @@
 ;;;
 
 (defstruct (format-header (:constructor %make-format-header))
-  (file-type :read-only)
-  (version :read-only))
+  (file-type nil :read-only t)
+  (version nil :read-only t))
 
 (defparameter +format-header-regexp+
   "^format\\s+(ascii|binary_big_endian|binary_little_endian)\\s+(1.0)$")
@@ -459,8 +459,8 @@
 ;;;
 
 (defstruct (element-header (:constructor %make-element-header))
-  (name :read-only)
-  (size :read-only))
+  (name nil :read-only t)
+  (size nil :read-only t))
 
 (defparameter +element-header-regexp+ "^element\\s+(\\w+)\\s+([1-9]\\d*)$")
 
@@ -477,13 +477,13 @@
 ;;;
 
 (defstruct (scalar-property-header (:constructor %make-scalar-property-header))
-  (type :read-only)
-  (name :read-only))
+  (type nil :read-only t)
+  (name nil :read-only t))
 
 (defstruct (list-property-header (:constructor %make-list-property-header))
-  (count-type :read-only)
-  (element-type :read-only)
-  (name :read-only))
+  (count-type nil :read-only t)
+  (element-type nil :read-only t)
+  (name nil :read-only t))
 
 (defparameter +scalar-property-header-regexp+
   "^property\\s+(char|uchar|short|ushort|int|uint|float|double)\\s+(\\w+)$")
@@ -526,7 +526,7 @@
 ;;;
 
 (defstruct (comment-header (:constructor %make-comment-header))
-  (text :read-only))
+  (text nil :read-only t))
 
 (defparameter +comment-header-regexp+ "^comment\\s+(.+)$")
 
