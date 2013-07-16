@@ -16,6 +16,9 @@
     (let ((fp (open name :direction :input)))
       (ply-read fp))))
 
+(defun ply-close (plyfile)
+  (close (plyfile-stream plyfile)))
+
 (defun append-extension-if-necessary (filename)
   "Tack on the extension .ply, if necessary."
   (labels ((ends-with (str suffix)

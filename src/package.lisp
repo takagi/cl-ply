@@ -7,6 +7,7 @@
 (defpackage cl-ply
   (:use :cl)
   (:export #:ply-open-for-reading
+           #:ply-close
            #:ply-read
            #:with-ply-element
            #:read-ply-element))
