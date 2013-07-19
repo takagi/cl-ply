@@ -402,11 +402,11 @@
 
 
 ;;;
-;;; Make PLY headers
+;;; PLY headers
 ;;;
 
 (defun make-ply-header (line)
-  (let ((keyword (car (cl-ppcre:split "\\s+" line))))
+  (let ((keyword (first (cl-ppcre:split "\\s+" line))))
     (cond
       ((string= keyword "ply")        (make-magic-header line))
       ((string= keyword "format")     (make-format-header line))
@@ -414,7 +414,7 @@
       ((string= keyword "property")   (make-property-header line))
       ((string= keyword "comment")    (make-comment-header line))
       ((string= keyword "end_header") (make-end-header line))
-      (t (error "invalid header: ~A" line)))))    
+      (t (error "invalid header: ~S" line)))))
 
 
 ;;;
@@ -427,7 +427,7 @@
 
 (defun make-magic-header (line)
   (unless (cl-ppcre:scan +magic-header-regexp+ line)
-    (error "invalid magic header: ~A" line))
+    (error "invalid magic header: ~S" line))
   (%make-magic-header))
 
 
@@ -437,28 +437,27 @@
 
 (defstruct (format-header (:constructor %make-format-header))
   (file-type nil :read-only t)
-  (version nil :read-only t))
+  (version   nil :read-only t))
 
 (defparameter +format-header-regexp+
   "^format\\s+(ascii|binary_big_endian|binary_little_endian)\\s+(1.0)$")
 
-(defparameter +parse-ply-file-type-error-string+
-  "PLY file type must be one of \"ascii\", \"binary_big_endian\" or \"binary_little_endian\"")
-
-(defun parse-ply-file-type (string)
-  (cond
-    ((string= string "ascii")                :ascii)
-    ((string= string "binary_big_endian")    :binary-big-endian)
-    ((string= string "binary_little_endian") :binary-little-endian)
-    (t (error +parse-ply-file-type-error-string+))))
-
 (defun make-format-header (line)
   (unless (cl-ppcre:scan +format-header-regexp+ line)
-    (error "invalid format header: ~A" line))
+    (error "invalid format header: ~S" line))
   (cl-ppcre:register-groups-bind ((#'parse-ply-file-type file-type) version)
       (+format-header-regexp+ line)
     (%make-format-header :file-type file-type
                          :version   version)))
+
+(defparameter +ply-file-types+
+  '(("ascii"                . :ascii)
+    ("binary_big_endian"    . :binary-big-endian)
+    ("binary_little_endian" . :binary-little-endian)))
+
+(defun parse-ply-file-type (string)
+  (or (cdr (assoc string +ply-file-types+ :test #'string=))
+      (error "PLY file type must be one of \"ascii\", \"binary_big_endian\" or \"binary_little_endian")))
 
 
 ;;;
