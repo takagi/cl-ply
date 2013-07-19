@@ -581,38 +581,54 @@
     (error "invalid string for unsigned integer: ~S" string))
   (parse-integer string))
 
-(defparameter +float-regex1+
+
+;;;
+;;; Parsing single/double precision floating point numbers
+;;;
+
+(defparameter +float-regexp1+
   "^(\\+|-)?([1-9]\\d*|0)(\\.\\d+)?$")
-(defparameter +float-regex2+
+
+(defparameter +float-regexp2+
   "^(\\+|-)?([1-9]\\d*|0)(\\.\\d+)?(e(\\+|-)?\\d+)?$")
-(defparameter +float-regex3+
+
+(defparameter +float-regexp3+
   "^(\\+|-)?([1-9]\\d*|0)(\\.\\d+)?(s(\\+|-)?\\d+)?$")
-(defparameter +float-regex4+
+
+(defparameter +float-regexp4+
   "^(\\+|-)?([1-9]\\d*|0)(\\.\\d+)?(d(\\+|-)?\\d+)?$")
 
 (defun parse-single-float (string)
   (cond
-    ((cl-ppcre:scan +float-regex1+ string)
-     (let ((s0 (concatenate 'string string "s0")))
-       (read-from-string s0)))
-    ((cl-ppcre:scan +float-regex2+ string)
-     (let ((s0 (cl-ppcre:regex-replace "e" string "s")))
-       (read-from-string s0)))
-    ((cl-ppcre:scan +float-regex3+ string)
+    (;; parse single float in default format
+     (cl-ppcre:scan +float-regexp1+ string)
+     (let ((s (concatenate 'string string "s0")))
+       (read-from-string s)))
+    (;; parse single float in exponential notation
+     (cl-ppcre:scan +float-regexp2+ string)
+     (let ((s (cl-ppcre:regex-replace "e" string "s")))
+       (read-from-string s)))
+    (;; parse single float in short format
+     (cl-ppcre:scan +float-regexp3+ string)
      (read-from-string string))
-    (t (error "invalid string for single float value: ~S" string))))
+    (;; otherwise error
+     t (error "invalid string for single float: ~S" string))))
 
 (defun parse-double-float (string)
   (cond
-    ((cl-ppcre:scan +float-regex1+ string)
-     (let ((s0 (concatenate 'string string "d0")))
-       (read-from-string s0)))
-    ((cl-ppcre:scan +float-regex2+ string)
-     (let ((s0 (cl-ppcre:regex-replace "e" string "d")))
-       (read-from-string s0)))
-    ((cl-ppcre:scan +float-regex4+ string)
+    (;; parse double float in default format
+     (cl-ppcre:scan +float-regexp1+ string)
+     (let ((s (concatenate 'string string "d0")))
+       (read-from-string s)))
+    (;; parse double float in exponential notation
+     (cl-ppcre:scan +float-regexp2+ string)
+     (let ((s (cl-ppcre:regex-replace "e" string "d")))
+       (read-from-string s)))
+    (;; parse double float in long format
+     (cl-ppcre:scan +float-regexp4+ string)
      (read-from-string string))
-    (t (error "invalid string for double float value: ~S" string))))
+    (;; otherwise error
+     t (error "invalid string for double float: ~S" string))))
 
 
 ;;;
