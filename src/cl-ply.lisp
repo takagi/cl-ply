@@ -532,7 +532,7 @@
 
 (defun make-comment-header (line)
   (unless (cl-ppcre:scan +comment-header-regexp+ line)
-    (error "invalid comment header: ~A" line))
+    (error "invalid comment header: ~S" line))
   (cl-ppcre:register-groups-bind (text)
       (+comment-header-regexp+ line)
     (%make-comment-header :text text)))
@@ -548,7 +548,7 @@
 
 (defun make-end-header (line)
   (unless (cl-ppcre:scan +end-header-regexp+ line)
-    (error "invalid end header: ~A" line))
+    (error "invalid end header: ~S" line))
   (%make-end-header))
 
 
