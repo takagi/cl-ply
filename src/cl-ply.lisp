@@ -590,13 +590,13 @@
   "^(\\+|-)?([1-9]\\d*|0)(\\.\\d+)?$")
 
 (defparameter +float-regexp2+
-  "^(\\+|-)?([1-9]\\d*|0)(\\.\\d+)?(e(\\+|-)?\\d+)?$")
+  "^(\\+|-)?([1-9]\\d*|0)(\\.\\d+)?((e|E)(\\+|-)?\\d+)?$")
 
 (defparameter +float-regexp3+
-  "^(\\+|-)?([1-9]\\d*|0)(\\.\\d+)?(s(\\+|-)?\\d+)?$")
+  "^(\\+|-)?([1-9]\\d*|0)(\\.\\d+)?((s|S)(\\+|-)?\\d+)?$")
 
 (defparameter +float-regexp4+
-  "^(\\+|-)?([1-9]\\d*|0)(\\.\\d+)?(d(\\+|-)?\\d+)?$")
+  "^(\\+|-)?([1-9]\\d*|0)(\\.\\d+)?((d|D)(\\+|-)?\\d+)?$")
 
 (defun parse-single-float (string)
   (cond
@@ -606,7 +606,7 @@
        (read-from-string s)))
     (;; parse single float in exponential notation
      (cl-ppcre:scan +float-regexp2+ string)
-     (let ((s (cl-ppcre:regex-replace "e" string "s")))
+     (let ((s (cl-ppcre:regex-replace "e|E" string "s")))
        (read-from-string s)))
     (;; parse single float in short format
      (cl-ppcre:scan +float-regexp3+ string)
@@ -622,7 +622,7 @@
        (read-from-string s)))
     (;; parse double float in exponential notation
      (cl-ppcre:scan +float-regexp2+ string)
-     (let ((s (cl-ppcre:regex-replace "e" string "d")))
+     (let ((s (cl-ppcre:regex-replace "e|E" string "d")))
        (read-from-string s)))
     (;; parse double float in long format
      (cl-ppcre:scan +float-regexp4+ string)
