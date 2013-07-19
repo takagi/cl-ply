@@ -553,25 +553,31 @@
 
 
 ;;;
-;;; Types for PLY format
+;;; Parsing types in PLY format
 ;;;
 
-(defun parse-ply-type (string)
-  (cond
-    ((string= string "char")   :char)
-    ((string= string "uchar")  :uchar)
-    ((string= string "short")  :short)
-    ((string= string "ushort") :ushort)
-    ((string= string "int")    :int)
-    ((string= string "uint")   :uint)
-    ((string= string "float")  :float)
-    ((string= string "double") :double)
-    (t (error "invalid string for type: ~A" string))))
+(defparameter +ply-types+ '(("char"   . :char)
+                            ("uchar"  . :uchar)
+                            ("short"  . :short)
+                            ("ushort" . :ushort)
+                            ("int"    . :int)
+                            ("uint"   . :uint)
+                            ("float"  . :float)
+                            ("double" . :double)))
 
-(defparameter +non-negative-integer-regex+ "^([1-9]\\d*|0)$")
+(defun parse-ply-type (string)
+  (or (cdr (assoc string +ply-types+ :test #'string=))
+      (error "invalid string for type: ~S" string)))
+
+
+;;;
+;;; Parsing non negative integer
+;;;
+
+(defparameter +non-negative-integer-regexp+ "^([1-9]\\d*|0)$")
 
 (defun parse-non-negative-integer (string)
-  (unless (cl-ppcre:scan +non-negative-integer-regex+ string)
+  (unless (cl-ppcre:scan +non-negative-integer-regexp+ string)
     (error "invalid string for unsigned integer: ~S" string))
   (parse-integer string))
 
