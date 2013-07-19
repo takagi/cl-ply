@@ -472,7 +472,7 @@
 
 (defun make-element-header (line)
   (unless (cl-ppcre:scan +element-header-regexp+ line)
-    (error "invalid element header: ~A" line))
+    (error "invalid element header: ~S" line))
   (cl-ppcre:register-groups-bind (name (#'parse-integer size))
       (+element-header-regexp+ line)
     (%make-element-header :name name :size size)))
@@ -487,9 +487,9 @@
   (name nil :read-only t))
 
 (defstruct (list-property-header (:constructor %make-list-property-header))
-  (count-type nil :read-only t)
+  (count-type   nil :read-only t)
   (element-type nil :read-only t)
-  (name nil :read-only t))
+  (name         nil :read-only t))
 
 (defparameter +scalar-property-header-regexp+
   "^property\\s+(char|uchar|short|ushort|int|uint|float|double)\\s+(\\w+)$")
@@ -498,23 +498,23 @@
   "^property\\s+list\\s+(uchar|ushort|uint)\\s+(char|uchar|short|ushort|int|uint|float|double)\\s+(\\w+)$")
 
 (defun make-property-header (line)
-  (unless (or (cl-ppcre:scan +scalar-property-header-regexp+ line)
-              (cl-ppcre:scan +list-property-header-regexp+ line))
-    (error "invalid property header: ~A" line))
-  ;; make scalar property header
-  (cl-ppcre:register-groups-bind ((#'parse-ply-type type) name)
-      (+scalar-property-header-regexp+ line)
-    (return-from make-property-header
-      (%make-scalar-property-header :type type :name name)))
-  ;; make list property header
-  (cl-ppcre:register-groups-bind ((#'parse-ply-type count-type)
-                                  (#'parse-ply-type element-type)
-                                  name)
-      (+list-property-header-regexp+ line)
-    (return-from make-property-header
-      (%make-list-property-header :count-type count-type
-                                  :element-type element-type
-                                  :name name))))
+  (cond
+    (;; make scalar property header
+     (cl-ppcre:scan +scalar-property-header-regexp+ line)
+     (cl-ppcre:register-groups-bind ((#'parse-ply-type type) name)
+         (+scalar-property-header-regexp+ line)
+       (%make-scalar-property-header :type type :name name)))
+    (;; make list property header
+     (cl-ppcre:scan +list-property-header-regexp+ line)
+     (cl-ppcre:register-groups-bind ((#'parse-ply-type count-type)
+                                     (#'parse-ply-type element-type)
+                                     name)
+         (+list-property-header-regexp+ line)
+       (%make-list-property-header :count-type   count-type
+                                   :element-type element-type
+                                   :name         name)))
+    (;; otherwise error
+     t (error "invalid property header: ~S" line))))
 
 (defun property-header-p (header)
   (or (scalar-property-header-p header)
