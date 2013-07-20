@@ -163,11 +163,17 @@
       (setf comments (cons-last comment comments)))))
 
 
-;;; functions on plyfile state
+;;;
+;;; Plyfile - State management
+;;;
 
 (defun plyfile-initialize-state (plyfile)
   (let ((element-names (plyfile-element-names plyfile)))
     (setf (plyfile-state plyfile) (make-state element-names))))
+
+(defun plyfile-transfer-state (plyfile)
+  (let ((state (plyfile-state plyfile)))
+    (transfer-state state)))
 
 (defun plyfile-ready-p (plyfile element-name)
   (let ((state (plyfile-state plyfile)))
@@ -181,36 +187,36 @@
   (let ((state (plyfile-state plyfile)))
     (state-finish-p state)))
 
-(defun plyfile-transfer-state (plyfile)
-  (let ((state (plyfile-state plyfile)))
-    (transfer-state state)))
 
-
-;;; procedures to read properties for current element
+;;;
+;;; Plyfile - Properties reader
+;;;
 
 (defun plyfile-read-properties (plyfile)
   (let ((current-element-name (plyfile-current-element-name plyfile)))
     (unless (plyfile-reading-p plyfile current-element-name)
       (error "plyfile is not in :reading state")))
-  (let ((element (plyfile-current-element plyfile)))
-    (cond
-      ((element-scalar-properties-p element) (read-scalar-properties plyfile))
-      ((element-list-properties-p element) (read-list-properties plyfile)))))
+  (let ((stream (plyfile-stream plyfile))
+        (file-type (plyfile-file-type plyfile))
+        (element (plyfile-current-element plyfile)))
+    (read-properties stream file-type element)))
 
-(defun read-scalar-properties (plyfile)
-  (let ((element   (plyfile-current-element plyfile))
-        (stream    (plyfile-stream plyfile))
-        (file-type (plyfile-file-type plyfile)))
-    (loop for property in (element-properties element)
+(defun read-properties (stream file-type element)
+  (cond
+    ((element-scalar-properties-p element)
+     (read-scalar-properties stream file-type element))
+    ((element-list-properties-p element)
+     (read-list-properties stream file-type element))))
+
+(defun read-scalar-properties (stream file-type element)
+  (let ((properties (element-properties element)))
+    (loop for property in properties
        collect
          (let ((property-type (scalar-property-type property)))
            (read-property stream file-type property-type)))))
 
-(defun read-list-properties (plyfile)
-  (let* ((element   (plyfile-current-element plyfile))
-         (stream    (plyfile-stream plyfile))
-         (file-type (plyfile-file-type plyfile))
-         (property  (first (element-properties element))))
+(defun read-list-properties (stream file-type element)
+  (let ((property (first (element-properties element))))
     (let ((count-type   (list-property-count-type property))
           (element-type (list-property-element-type property)))
       (let ((count (read-property stream file-type count-type)))
