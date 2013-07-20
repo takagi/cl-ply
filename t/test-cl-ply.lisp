@@ -158,6 +158,8 @@ end_header
 ;;; test Plyfile
 ;;;
 
+(diag "test Plyfile")
+
 ;;; test PLYFILE-SET-FORMAT function
 (let ((plyfile (cl-ply::make-plyfile)))
   (let ((header (cl-ply::make-format-header "format ascii 1.0")))
@@ -437,6 +439,8 @@ end_header
 ;;; test making PLY headers
 ;;;
 
+(diag "test making PLY headers")
+
 (ok (cl-ply::magic-header-p    (cl-ply::make-ply-header "ply")))
 (ok (cl-ply::format-header-p   (cl-ply::make-ply-header "format ascii 1.0")))
 (ok (cl-ply::element-header-p  (cl-ply::make-ply-header "element vertex 128")))
@@ -450,6 +454,8 @@ end_header
 ;;; test Magic header
 ;;;
 
+(diag "test Magic header")
+
 (ok (cl-ply::make-magic-header "ply"))
 (is-error (cl-ply::make-magic-header "ply ") simple-error)
 (is-error (cl-ply::make-magic-header "plya") simple-error)
@@ -459,6 +465,8 @@ end_header
 ;;;
 ;;; test Format header
 ;;;
+
+(diag "test Format header")
 
 (let ((header (cl-ply::make-format-header "format ascii 1.0")))
   (is (cl-ply::format-header-file-type header) :ascii)
@@ -481,6 +489,8 @@ end_header
 ;;; test Element header
 ;;;
 
+(diag "test Element header")
+
 (let ((header (cl-ply::make-element-header "element vertex 128")))
   (is (cl-ply::element-header-name header) "vertex")
   (is (cl-ply::element-header-size header) 128))
@@ -496,6 +506,8 @@ end_header
 ;;;
 ;;; test Property header
 ;;;
+
+(diag "test Property header")
 
 ;;; test scalar property
 (let ((header (cl-ply::make-property-header "property float x")))
@@ -536,6 +548,8 @@ end_header
 ;;; test Comment header
 ;;;
 
+(diag "test Comment header")
+
 (let ((header (cl-ply::make-comment-header "comment foo bar baz")))
   (is (cl-ply::comment-header-text header) "foo bar baz"))
 (let ((header (cl-ply::make-comment-header "comment  foo bar baz")))
@@ -546,6 +560,8 @@ end_header
 ;;; test End header
 ;;;
 
+(diag "test End header")
+
 (ok (cl-ply::make-end-header "end_header"))
 (is-error (cl-ply::make-end-header " end_header") simple-error)
 (is-error (cl-ply::make-end-header "end_header ") simple-error)
@@ -554,6 +570,8 @@ end_header
 ;;;
 ;;; test types
 ;;;
+
+(diag "test types")
 
 ;;; test PARSE-NON-NEGATIVE-INTEGER function
 (is (cl-ply::parse-non-negative-integer "1") 1)
