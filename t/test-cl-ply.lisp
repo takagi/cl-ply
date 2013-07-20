@@ -434,7 +434,7 @@ end_header
 
 
 ;;;
-;;; test to make PLY headers
+;;; test making PLY headers
 ;;;
 
 (ok (cl-ply::magic-header-p    (cl-ply::make-ply-header "ply")))
