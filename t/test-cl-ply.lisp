@@ -366,10 +366,10 @@ end_header
 
 
 ;;;
-;;; test Plyfile state
+;;; test State
 ;;;
 
-(diag "test Plyfile state")
+(diag "test State")
 
 ;;; test MAKE-STATE function
 (let ((state (cl-ply::make-state '("vertex" "face"))))
