@@ -345,7 +345,7 @@
 
 
 ;;;
-;;; Plyfile state
+;;; State
 ;;;
 
 (defstruct (state (:constructor %make-state)
