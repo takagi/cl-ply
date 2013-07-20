@@ -244,9 +244,11 @@
       (char= char #\Newline)))
 
 (defun read-property-binary-be (stream element-type)
+  (declare (ignore stream element-type))
   (error "not implemented"))
 
 (defun read-property-binary-le (stream element-type)
+  (declare (ignore stream element-type))
   (error "not implemented"))
 
 
