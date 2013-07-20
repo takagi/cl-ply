@@ -71,8 +71,8 @@
 
 (defmacro with-ply-element ((props element-name plyfile) &body body)
   `(progn
-     (unless (plyfile-current-state-p ,plyfile :ready ,element-name)
-       (error "invalid current state: ~S" (plyfile-current-state ,plyfile)))
+     (unless (plyfile-ready-p ,plyfile ,element-name)
+       (error "plyfile is not in :ready state for ~S" ,element-name))
      (plyfile-transfer-state ,plyfile)  ; transfer :ready -> :reading
      (loop repeat (plyfile-current-element-size ,plyfile)
         do ,(if (consp props)
@@ -84,8 +84,8 @@
      (plyfile-transfer-state ,plyfile))) ;transfer :reading -> :ready|:finish
 
 (defun read-ply-element (element-name plyfile)
-  (unless (plyfile-current-state-p plyfile :ready element-name)
-    (error "invalid current state: ~S" (plyfile-current-state plyfile)))
+  (unless (plyfile-ready-p plyfile element-name)
+    (error "plyfile is not in :ready state for ~S" element-name))
   (plyfile-transfer-state plyfile)     ; transfer :ready -> :reading
   (prog1
       (loop repeat (plyfile-current-element-size plyfile)
@@ -169,13 +169,17 @@
   (let ((element-names (plyfile-element-names plyfile)))
     (setf (plyfile-state plyfile) (make-state element-names))))
 
-(defun plyfile-current-state-p (plyfile state-name &optional element-name)
+(defun plyfile-ready-p (plyfile element-name)
   (let ((state (plyfile-state plyfile)))
-    (state-current-p state state-name element-name)))
+    (state-ready-p state element-name)))
 
-(defun plyfile-current-state (plyfile)
+(defun plyfile-reading-p (plyfile element-name)
   (let ((state (plyfile-state plyfile)))
-    (state-current state)))
+    (state-reading-p state element-name)))
+
+(defun plyfile-finish-p (plyfile)
+  (let ((state (plyfile-state plyfile)))
+    (state-finish-p state)))
 
 (defun plyfile-transfer-state (plyfile)
   (let ((state (plyfile-state plyfile)))
@@ -186,7 +190,7 @@
 
 (defun plyfile-read-properties (plyfile)
   (let ((current-element-name (plyfile-current-element-name plyfile)))
-    (unless (plyfile-current-state-p plyfile :reading current-element-name)
+    (unless (plyfile-reading-p plyfile current-element-name)
       (error "plyfile is not in :reading state")))
   (let ((element (plyfile-current-element plyfile)))
     (cond
@@ -342,63 +346,57 @@
 ;;; Plyfile state
 ;;;
 
-(defstruct (state (:constructor %make-state))
+(defstruct (state (:constructor %make-state)
+                  (:conc-name   %state-))
   name
   element-names)
 
 (defun make-state (element-names)
+  (loop for element-name in element-names
+     do (check-type element-name string))
   (if element-names
       (%make-state :name :ready
                    :element-names element-names)
-      (%make-state :name :finish
-                   :element-names nil)))
+      (%make-state :name :finish)))
 
-(defun valid-state-p (state)
-  (let ((state-name   (state-name state))
-        (element-name (state-current-element-name state)))
-    (or (and (eq state-name :ready)
-             (stringp element-name))
-        (and (eq state-name :reading)
-             (stringp element-name))
-        (and (eq state-name :finish)
-             (null element-name)))))
+(defun transfer-state (state)
+  (symbol-macrolet ((name          (%state-name state))
+                    (element-names (%state-element-names state)))
+    (ecase name
+      (:ready   (setf name :reading))
+      (:reading (if (cdr element-names)
+                    (setf name :ready
+                          element-names (cdr element-names))
+                    (setf name :finish
+                          element-names nil)))
+      (:finish  nil))                   ; noop
+    state))
+
+(defun state-name (state)
+  (%state-name state))
 
 (defun state-current-element-name (state)
-  (car (state-element-names state)))
+  (first (%state-element-names state)))
 
-(defun state-current-p (state state-name &optional element-name)
-  (assert (valid-state-p state))
-  (assert (or (and (eq state-name :ready)
-                   (stringp element-name))
-              (and (eq state-name :reading)
-                   (stringp element-name))
-              (and (eq state-name :finish)
-                   (null element-name))))
+(defun state-ready-p (state element-name)
+  (check-type element-name string)
   (let ((current-state-name   (state-name state))
         (current-element-name (state-current-element-name state)))
-    (and (eq current-state-name state-name)
+    (and (eq current-state-name :ready)
          (string= current-element-name element-name))))
 
-(defun state-current (state)
-  (assert (valid-state-p state))
-  (let ((state-name (state-name state))
+(defun state-reading-p (state element-name)
+  (check-type element-name string)
+  (let ((current-state-name   (state-name state))
         (current-element-name (state-current-element-name state)))
-    (case state-name
-      (:ready   (list :ready current-element-name))
-      (:reading (list :reading current-element-name))
-      (:finish  :finish))))
-        
-(defun transfer-state (state)
-  (assert (valid-state-p state))
-  (symbol-macrolet ((state-name (state-name state))
-                    (state-element-names (state-element-names state)))
-    (case state-name
-      (:ready (setf state-name :reading))
-      (:reading (if (cdr state-element-names)
-                    (setf state-name :ready
-                          state-element-names (cdr state-element-names))
-                    (setf state-name :finish
-                          state-element-names (cdr state-element-names)))))))
+    (and (eq current-state-name :reading)
+         (string= current-element-name element-name))))
+
+(defun state-finish-p (state)
+  (let ((current-state-name   (state-name state))
+        (current-element-name (state-current-element-name state)))
+    (and (eq current-state-name :finish)
+         (null current-element-name))))
 
 
 ;;;

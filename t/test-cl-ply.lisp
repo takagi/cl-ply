@@ -272,7 +272,7 @@ end_header
       (cl-ply::plyfile-transfer-state plyfile) ; :ready   -> :reading
       (is (cl-ply::plyfile-read-properties plyfile) '(0 1 2 3))
       (cl-ply::plyfile-transfer-state plyfile) ; :reading -> :finish
-      (ok (cl-ply::plyfile-current-state-p plyfile :finish))))
+      (ok (cl-ply::plyfile-finish-p plyfile))))
   (with-input-from-string (stream str)
     (let ((plyfile (cl-ply:ply-read stream)))
       ;; need to be in :reading state
@@ -369,45 +369,68 @@ end_header
 ;;; test Plyfile state
 ;;;
 
-;;; test TRANSFER-STATE function
-(let ((state (cl-ply::make-state '("vertex" "face"))))
-  (ok (cl-ply::state-current-p state :ready "vertex"))
-  (cl-ply::transfer-state state)
-  (ok (cl-ply::state-current-p state :reading "vertex"))
-  (cl-ply::transfer-state state)
-  (ok (cl-ply::state-current-p state :ready "face"))
-  (cl-ply::transfer-state state)
-  (ok (cl-ply::state-current-p state :reading "face"))
-  (cl-ply::transfer-state state)
-  (ok (cl-ply::state-current-p state :finish))
-  (cl-ply::transfer-state state)
-  (ok (cl-ply::state-current-p state :finish)))
+(diag "test Plyfile state")
 
 ;;; test MAKE-STATE function
 (let ((state (cl-ply::make-state '("vertex" "face"))))
-  (ok (cl-ply::state-current-p state :ready "vertex")))
+  (ok (cl-ply::state-ready-p state "vertex")))
 (let ((state (cl-ply::make-state '())))
-  (ok (cl-ply::state-current-p state :finish)))
+  (ok (cl-ply::state-finish-p state)))
+(is-error (cl-ply::make-state '(1)) simple-type-error)
+(is-error (cl-ply::make-state '(nil)) simple-type-error)
 
-;;; test VALID-STATE-P function
-(let ((state (cl-ply::%make-state :name :foo :element-names nil)))
-  (ok (null (cl-ply::valid-state-p state))))
-(let ((state (cl-ply::%make-state :name :ready :element-names nil)))
-  (ok (null (cl-ply::valid-state-p state))))
-(let ((state (cl-ply::%make-state :name :reading :element-names nil)))
-  (ok (null (cl-ply::valid-state-p state))))
-(let ((state (cl-ply::%make-state :name :finish :element-names '("vertex"))))
-  (ok (null (cl-ply::valid-state-p state))))
-
-;;; test STATE-CURRENT-P function
+;;; test TRANSFER-STATE function
 (let ((state (cl-ply::make-state '("vertex" "face"))))
-  (ok (null (cl-ply::state-current-p state :ready "face")))
-  (ok (null (cl-ply::state-current-p state :reading "vertex")))
-  (ok (null (cl-ply::state-current-p state :finish)))
-  (is-error (cl-ply::state-current-p state :foo) simple-error)
-  (is-error (cl-ply::state-current-p state :ready) simple-error)
-  (is-error (cl-ply::state-current-p state :reading) simple-error)
-  (is-error (cl-ply::state-current-p state :finish "vertex") simple-error))
+  (ok (cl-ply::state-ready-p state "vertex"))
+  (cl-ply::transfer-state state)
+  (ok (cl-ply::state-reading-p state "vertex"))
+  (cl-ply::transfer-state state)
+  (ok (cl-ply::state-ready-p state "face"))
+  (cl-ply::transfer-state state)
+  (ok (cl-ply::state-reading-p state "face"))
+  (cl-ply::transfer-state state)
+  (ok (cl-ply::state-finish-p state))
+  (cl-ply::transfer-state state)
+  (ok (cl-ply::state-finish-p state)))
+
+;;; test STATE-NAME function
+
+;;; test STATE-CURRENT-ELEMENT-NAME function
+
+;;; test STATE-READY-P function
+(let ((state (cl-ply::make-state '("vertex"))))
+  ;; currently (:ready "vertex")
+  (ok (cl-ply::state-ready-p state "vertex"))
+  (ok (not (cl-ply::state-ready-p state "face")))
+  ;; currently (:reading "vertex")
+  (cl-ply::transfer-state state)
+  (ok (not (cl-ply::state-ready-p state "vertex")))
+  ;; currently :finish
+  (cl-ply::transfer-state state)
+  (ok (not (cl-ply::state-ready-p state "vertex"))))
+
+;;; test STATE-READING-P function
+(let ((state (cl-ply::make-state '("vertex"))))
+  ;; currently (:ready "vertex")
+  (ok (not (cl-ply::state-reading-p state "vertex")))
+  ;; currently (:reading "vertex")
+  (cl-ply::transfer-state state)
+  (ok (cl-ply::state-reading-p state "vertex"))
+  (ok (not (cl-ply::state-reading-p state "face")))
+  ;; currently :finish
+  (cl-ply::transfer-state state)
+  (ok (not (cl-ply::state-reading-p state "vertex"))))
+
+;;; test STATE-FINISH-P function
+(let ((state (cl-ply::make-state '("vertex"))))
+  ;; currently (:ready "vertex")
+  (ok (not (cl-ply::state-finish-p state)))
+  ;; currently (:reading "vertex")
+  (cl-ply::transfer-state state)
+  (ok (not (cl-ply::state-finish-p state)))
+  ;; currently :finish
+  (cl-ply::transfer-state state)
+  (ok (cl-ply::state-finish-p state)))
 
 
 ;;;
