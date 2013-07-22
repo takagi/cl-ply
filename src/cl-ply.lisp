@@ -577,6 +577,16 @@
 
 
 ;;;
+;;; Parsing integer
+;;;
+
+(defun %parse-integer (string)
+  (handler-case
+      (parse-integer string)
+    (condition () (error "invalid string for integer: ~S" string))))
+
+
+;;;
 ;;; Parsing non negative integer
 ;;;
 

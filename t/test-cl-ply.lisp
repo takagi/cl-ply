@@ -573,6 +573,12 @@ end_header
 
 (diag "test types")
 
+;;; test %PARSE-INTEGER function
+(is (cl-ply::%parse-integer "1") 1)
+(is (cl-ply::%parse-integer "-1") -1)
+(is-error (cl-ply::%parse-integer "1.0") simple-error)
+(is-error (cl-ply::%parse-integer "foo") simple-error)
+
 ;;; test PARSE-NON-NEGATIVE-INTEGER function
 (is (cl-ply::parse-non-negative-integer "1") 1)
 (is-error (cl-ply::parse-non-negative-integer "-1") simple-error)
