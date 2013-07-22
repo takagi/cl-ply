@@ -9,73 +9,15 @@
 
 
 ;;;
-;;; test reading Ply file
+;;; test Plyfile
 ;;;
 
-;;; test APPEND-EXTENSION-IF-NECESSARY function
-(is (cl-ply::append-extension-if-necessary "foobar.ply") "foobar.ply")
-(is (cl-ply::append-extension-if-necessary "foobar") "foobar.ply")
-(is (cl-ply::append-extension-if-necessary "foo") "foo.ply")
-
-;;; test PLY-READ function
-(let ((str "ply
-format ascii 1.0
-comment foo
-element vertex 128
-property float x
-property float y
-property float z
-element face 128
-property list uchar int vertex_index
-end_header"))
-  (with-input-from-string (stream str)
-    (let ((plyfile (cl-ply:ply-read stream)))
-      ;; test PLY header
-      (is (cl-ply::plyfile-file-type plyfile) :ascii)
-      ;; test FORMAT header
-      (is (cl-ply::plyfile-version plyfile) "1.0")
-      ;; test COMMENT header
-      (let ((comment (first (cl-ply::plyfile-comments plyfile))))
-        (is (cl-ply::comment-text comment) "foo"))
-      ;; test "vertex" ELEMENT header
-      (let ((element (first (cl-ply::plyfile-elements plyfile))))
-        (is (cl-ply::element-name element) "vertex")
-        (is (cl-ply::element-size element) 128))
-      ;; test PROPERTY header of "vertex" element
-      (let ((element (first (cl-ply::plyfile-elements plyfile))))
-        (destructuring-bind (prop-x prop-y prop-z)
-            (cl-ply::element-properties element)
-          (ok (cl-ply::scalar-property-p prop-x))
-          (is (cl-ply::scalar-property-type prop-x) :float)
-          (is (cl-ply::scalar-property-name prop-x) "x")
-          (ok (cl-ply::scalar-property-p prop-y))
-          (is (cl-ply::scalar-property-type prop-y) :float)
-          (is (cl-ply::scalar-property-name prop-y) "y")
-          (ok (cl-ply::scalar-property-p prop-z))
-          (is (cl-ply::scalar-property-type prop-z) :float)
-          (is (cl-ply::scalar-property-name prop-z) "z")))
-      ;; test "face" ELEMENT header
-      (let ((element (second (cl-ply::plyfile-elements plyfile))))
-        (is (cl-ply::element-name element) "face")
-        (is (cl-ply::element-size element) 128))
-      ;; test PROPERTY header of "face" element
-      (let ((element (second (cl-ply::plyfile-elements plyfile))))
-        (let ((property (first (cl-ply::element-properties element))))
-          (ok (cl-ply::list-property-p property))
-          (is (cl-ply::list-property-count-type property) :uchar)
-          (is (cl-ply::list-property-element-type property) :int)
-          (is (cl-ply::list-property-name property) "vertex_index"))))))
-
-;;; PROPERTY header must follow ELEMENT header
-(let ((str "ply
-format ascii 1.0
-property float x"))
-  (with-input-from-string (stream str)
-    (is-error (cl-ply:ply-read stream) simple-error)))
+(diag "test Plyfile")
 
 (defparameter +test-ply-data+
   "ply
 format ascii 1.0
+comment this is test ply data.
 element vertex 2
 property float x
 property float y
@@ -83,108 +25,200 @@ property float z
 element face 2
 property list uchar int vertex_index
 end_header
-0.0 0.0 0.0
-0.0 0.0 1.0
+0.0 1.0 2.0
+3.0 4.0 5.0
 4 0 1 2 3
 4 4 5 6 7")
 
+;;; test APPEND-EXTENSION-IF-NECESSARY function
+(is (cl-ply::append-extension-if-necessary "foobar.ply") "foobar.ply")
+(is (cl-ply::append-extension-if-necessary "foobar") "foobar.ply")
+(is (cl-ply::append-extension-if-necessary "foo") "foo.ply")
+
+;;; test MAKE-PLYFILE function
+(with-input-from-string (stream +test-ply-data+)
+  (let ((plyfile (cl-ply:make-plyfile stream)))
+    ;; test PLY header
+    (is (cl-ply::plyfile-file-type plyfile) :ascii)
+    ;; test FORMAT header
+    (is (cl-ply::plyfile-version plyfile) "1.0")
+    ;; test COMMENT header
+    (let ((comment (first (cl-ply::plyfile-comments plyfile))))
+      (is (cl-ply::comment-text comment) "this is test ply data."))
+    ;; test "vertex" ELEMENT header
+    (let ((element (first (cl-ply::plyfile-elements plyfile))))
+      (is (cl-ply::element-name element) "vertex")
+      (is (cl-ply::element-size element) 2))
+    ;; test PROPERTY header of "vertex" element
+    (let ((element (first (cl-ply::plyfile-elements plyfile))))
+      (destructuring-bind (prop-x prop-y prop-z)
+          (cl-ply::element-properties element)
+        (ok (cl-ply::scalar-property-p prop-x))
+        (is (cl-ply::scalar-property-type prop-x) :float)
+        (is (cl-ply::scalar-property-name prop-x) "x")
+        (ok (cl-ply::scalar-property-p prop-y))
+        (is (cl-ply::scalar-property-type prop-y) :float)
+        (is (cl-ply::scalar-property-name prop-y) "y")
+        (ok (cl-ply::scalar-property-p prop-z))
+        (is (cl-ply::scalar-property-type prop-z) :float)
+        (is (cl-ply::scalar-property-name prop-z) "z")))
+    ;; test "face" ELEMENT header
+    (let ((element (second (cl-ply::plyfile-elements plyfile))))
+      (is (cl-ply::element-name element) "face")
+      (is (cl-ply::element-size element) 2))
+    ;; test PROPERTY header of "face" element
+    (let ((element (second (cl-ply::plyfile-elements plyfile))))
+      (let ((property (first (cl-ply::element-properties element))))
+        (ok (cl-ply::list-property-p property))
+        (is (cl-ply::list-property-count-type property) :uchar)
+        (is (cl-ply::list-property-element-type property) :int)
+        (is (cl-ply::list-property-name property) "vertex_index")))))
+
+;;; PROPERTY header must follow ELEMENT header
+(let ((str "ply
+format ascii 1.0
+property float x"))
+  (with-input-from-string (stream str)
+    (is-error (cl-ply:make-plyfile stream) simple-error)))
+
 ;;; test WITH-PLY-ELEMENT macro
 (with-input-from-string (stream +test-ply-data+)
-  (let ((plyfile (cl-ply:ply-read stream)))
+  (let ((plyfile (cl-ply:make-plyfile stream)))
     (let (result)
       (cl-ply:with-ply-element ((x y z) "vertex" plyfile)
         (push (list x y z) result))
-      (is result '((0.0 0.0 1.0) (0.0 0.0 0.0))))
+      (is result '((3.0 4.0 5.0) (0.0 1.0 2.0))))
     (let (result)
       (cl-ply:with-ply-element (vertex_indices "face" plyfile)
         (push vertex_indices result))
       (is result '((4 5 6 7) (0 1 2 3))))))
 
-;;; error if trying to read another element but the one ready to be read
+;;; error if trying to read other elements than ready to be read
 (with-input-from-string (stream +test-ply-data+)
-  (let ((plyfile (cl-ply:ply-read stream)))
+  (let ((plyfile (cl-ply:make-plyfile stream)))
     (is-error (cl-ply:with-ply-element (foo "foo" plyfile)
-                (progn foo))            ; do nothing
+                (declare (ignore foo)))
               simple-error)))
 
 ;;; error if trying to read element while reading another
 (with-input-from-string (stream +test-ply-data+)
-  (let ((plyfile (cl-ply:ply-read stream)))
+  (let ((plyfile (cl-ply:make-plyfile stream)))
     (cl-ply:with-ply-element ((x y z) "vertex" plyfile)
-      (progn x y z)                     ; do nothing
+      (declare (ignore x y z))
       (is-error (cl-ply:with-ply-element (foo "foo" plyfile)
-                  (progn foo))          ; do nothing
+                  (declare (ignore foo)))
                 simple-error))))
 
 ;;; error if trying to read element after finished reading all
 (with-input-from-string (stream +test-ply-data+)
-  (let ((plyfile (cl-ply:ply-read stream)))
+  (let ((plyfile (cl-ply:make-plyfile stream)))
     (cl-ply:with-ply-element ((x y z) "vertex" plyfile)
-      (progn x y z))                    ; do nothing
+      (declare (ignore x y z)))
     (cl-ply:with-ply-element (vertex_indices "face" plyfile)
-      (progn vertex_indices))           ; do nothing
+      (declare (ignore vertex_indices)))
     (is-error (cl-ply:with-ply-element (foo "foo" plyfile)
-                (progn foo))            ; do nothing
+                (declare (ignore foo)))
               simple-error)))
 
 ;;; test READ-PLY-ELEMENT function
 (with-input-from-string (stream +test-ply-data+)
-  (let ((plyfile (cl-ply:ply-read stream)))
+  (let ((plyfile (cl-ply:make-plyfile stream)))
     (is (cl-ply:read-ply-element "vertex" plyfile)
-        '((0.0 0.0 0.0) (0.0 0.0 1.0)))
+        '((0.0 1.0 2.0) (3.0 4.0 5.0)))
     (is (cl-ply:read-ply-element "face" plyfile)
         '((0 1 2 3) (4 5 6 7)))))
 
 ;;; error if trying to read element other than ready to be read
 (with-input-from-string (stream +test-ply-data+)
-  (let ((plyfile (cl-ply:ply-read stream)))
+  (let ((plyfile (cl-ply:make-plyfile stream)))
     (is-error (cl-ply:read-ply-element "foo" plyfile) simple-error)))
 
 ;;; error if trying to read element while reading one
 (with-input-from-string (stream +test-ply-data+)
-  (let ((plyfile (cl-ply:ply-read stream)))
+  (let ((plyfile (cl-ply:make-plyfile stream)))
     (cl-ply:with-ply-element ((x y z) "vertex" plyfile)
+      (declare (ignore x y z))
       (is-error (cl-ply:read-ply-element "foo" plyfile) simple-error))))
 
 ;;; error if trying to read element after finished reading all
 (with-input-from-string (stream +test-ply-data+)
-  (let ((plyfile (cl-ply:ply-read stream)))
+  (let ((plyfile (cl-ply:make-plyfile stream)))
     (cl-ply:read-ply-element "vertex" plyfile)
     (cl-ply:read-ply-element "face" plyfile)
     (is-error (cl-ply:read-ply-element "foo" plyfile) simple-error)))
 
 
 ;;;
-;;; test Plyfile
+;;; test Plyfile - Element selectors
 ;;;
 
-(diag "test Plyfile")
+(diag "test Plyfile - Element selectors")
+
+;;; test PLYFILE-ELEMENT function
+(let ((plyfile (cl-ply::%make-plyfile :stream nil)))
+  (let ((header (cl-ply::make-element-header "element vertex 128")))
+    (cl-ply::plyfile-add-element plyfile header)
+    (let ((element (cl-ply::plyfile-element plyfile "vertex")))
+      (is (cl-ply::element-name element) "vertex"))
+    (ok (null (cl-ply::plyfile-element plyfile "face")))))
+
+;;; test PLYFILE-ELEMENT-NAMES function
+(let ((plyfile (cl-ply::%make-plyfile :stream nil)))
+  (let ((header1 (cl-ply::make-element-header "element vertex 128"))
+        (header2 (cl-ply::make-element-header "element face 128")))
+    (cl-ply::plyfile-add-element plyfile header1)
+    (cl-ply::plyfile-add-element plyfile header2)
+    (is (cl-ply::plyfile-element-names plyfile) '("vertex" "face"))))
+
+;;; test PLYFILE-CURRENT-ELEMENT function
+(let ((plyfile (cl-ply::%make-plyfile :stream nil)))
+  (let ((header1 (cl-ply::make-element-header "element vertex 128"))
+        (header2 (cl-ply::make-element-header "element face 128")))
+    (cl-ply::plyfile-add-element plyfile header1)
+    (cl-ply::plyfile-add-element plyfile header2)
+    (cl-ply::plyfile-initialize-state plyfile)
+    (let ((element (cl-ply::plyfile-current-element plyfile)))
+      (is (cl-ply::element-name element) "vertex"))
+    (cl-ply::transfer-state (cl-ply::plyfile-state plyfile)) ; -> :reading
+    (cl-ply::transfer-state (cl-ply::plyfile-state plyfile)) ; -> :ready
+    (let ((element (cl-ply::plyfile-current-element plyfile)))
+      (is (cl-ply::element-name element) "face"))
+    (cl-ply::transfer-state (cl-ply::plyfile-state plyfile)) ; -> :reading
+    (cl-ply::transfer-state (cl-ply::plyfile-state plyfile)) ; -> ;finish
+    (is-error (cl-ply::plyfile-current-element plyfile) simple-error)))
+
+
+;;;
+;;; test Plyfile - Plyfile builder
+;;;
+
+(diag "test Plyfile - Plyfile builder")
 
 ;;; test PLYFILE-SET-FORMAT function
-(let ((plyfile (cl-ply::make-plyfile)))
+(let ((plyfile (cl-ply::%make-plyfile :stream nil)))
   (let ((header (cl-ply::make-format-header "format ascii 1.0")))
     (cl-ply::plyfile-set-format plyfile header))
   (is (cl-ply::plyfile-file-type plyfile) :ascii)
   (is (cl-ply::plyfile-version   plyfile) "1.0"))
 
 ;;; test PLYFILE-ADD-ELEMENT function
-(let ((plyfile (cl-ply::make-plyfile)))
+(let ((plyfile (cl-ply::%make-plyfile :stream nil)))
   ;; plyfile has no elements initially
   (ok (null (cl-ply::plyfile-elements plyfile)))
   ;; add element
   (let ((header (cl-ply::make-element-header "element vertex 128")))
     (cl-ply::plyfile-add-element plyfile header))
-  ;; test first element
+  ;; test the first element
   (let ((element (first (cl-ply::plyfile-elements plyfile))))
     (is (cl-ply::element-name element) "vertex")
     (is (cl-ply::element-size element) 128))
-   ;; add another element
-   (let ((header (cl-ply::make-element-header "element face 128")))
-     (cl-ply::plyfile-add-element plyfile header))
+  ;; add another element
+  (let ((header (cl-ply::make-element-header "element face 128")))
+    (cl-ply::plyfile-add-element plyfile header))
   ;; test order of elements
   (is (mapcar #'cl-ply::element-name (cl-ply::plyfile-elements plyfile))
       '("vertex" "face"))
-  ;; test second element
+  ;; test the second element
   (let ((element (second (cl-ply::plyfile-elements plyfile))))
     (is (cl-ply::element-name element) "face")
     (is (cl-ply::element-size element) 128))
@@ -192,38 +226,38 @@ end_header
   (let ((header (cl-ply::make-element-header "element face 128")))
     (is-error (cl-ply::plyfile-add-element plyfile header) simple-error)))
 
-;;; test PLYFILE-ADD-PROPERTY function
-(let ((plyfile (cl-ply::make-plyfile)))
-  ;; error if current element is nil
+;;; test PLYFILE-ADD-PROPERTY function with scalar property
+(let ((plyfile (cl-ply::%make-plyfile :stream nil)))
+  ;; plyfile has no elements initially and adding property causes error
   (let ((header (cl-ply::make-property-header "property float x")))
     (is-error (cl-ply::plyfile-add-property plyfile nil header) simple-error))
   ;; add element
   (let ((header (cl-ply::make-element-header "element vertex 128")))
     (cl-ply::plyfile-add-element plyfile header))
-   ;; element has no properties initially
-   (let ((element (car (cl-ply::plyfile-elements plyfile))))
-     (ok (null (cl-ply::element-properties element))))
+  ;; element has no properties initially
+  (let ((element (first (cl-ply::plyfile-elements plyfile))))
+    (ok (null (cl-ply::element-properties element))))
   ;; add property to element
   (let ((header (cl-ply::make-property-header "property float x")))
     (cl-ply::plyfile-add-property plyfile "vertex" header))
   ;; test first property
-  (let* ((element (car (cl-ply::plyfile-elements plyfile)))
-         (property (car (cl-ply::element-properties element))))
-    (is (cl-ply::scalar-property-type property) :float)
-    (is (cl-ply::scalar-property-name property) "x"))
+  (let ((element (first (cl-ply::plyfile-elements plyfile))))
+    (let ((property (first (cl-ply::element-properties element))))
+      (is (cl-ply::scalar-property-type property) :float)
+      (is (cl-ply::scalar-property-name property) "x")))
   ;; add another property to element
   (let ((header (cl-ply::make-property-header "property float y")))
     (cl-ply::plyfile-add-property plyfile "vertex" header))
   ;; test order of properties
-  (let ((element (car (cl-ply::plyfile-elements plyfile))))
+  (let ((element (first (cl-ply::plyfile-elements plyfile))))
     (is (mapcar #'cl-ply::scalar-property-name
                 (cl-ply::element-properties element))
         '("x" "y")))
   ;; test second property
-  (let* ((element (car (cl-ply::plyfile-elements plyfile)))
-         (property (cadr (cl-ply::element-properties element))))
-    (is (cl-ply::scalar-property-type property) :float)
-    (is (cl-ply::scalar-property-name property) "y"))
+  (let ((element (first (cl-ply::plyfile-elements plyfile))))
+    (let ((property (second (cl-ply::element-properties element))))
+      (is (cl-ply::scalar-property-type property) :float)
+      (is (cl-ply::scalar-property-name property) "y")))
   ;; adding duplicated property causes error
   (let ((header (cl-ply::make-property-header "property float y")))
     (is-error (cl-ply::plyfile-add-property plyfile "vertex" header)
@@ -233,8 +267,28 @@ end_header
     (is-error (cl-ply::plyfile-add-property plyfile "foo" header)
               simple-error)))
 
+;;; test PLYFILE-ADD-PROPERTY function with list property
+(let ((plyfile (cl-ply::%make-plyfile :stream nil)))
+  ;; add element
+  (let ((header (cl-ply::make-element-header "element face 128")))
+    (cl-ply::plyfile-add-element plyfile header))
+  ;; add property to element
+  (let ((header (cl-ply::make-property-header
+                    "property list uchar int vertex_index")))
+    (cl-ply::plyfile-add-property plyfile "face" header))
+  ;; test first property
+  (let ((element (first (cl-ply::plyfile-elements plyfile))))
+    (let ((property (first (cl-ply::element-properties element))))
+      (is (cl-ply::list-property-count-type property) :uchar)
+      (is (cl-ply::list-property-element-type property) :int)
+      (is (cl-ply::list-property-name property) "vertex_index")))
+  ;; adding another property to element causes error
+  (let ((header (cl-ply::make-property-header "property list uchar int foo")))
+    (is-error (cl-ply::plyfile-add-property plyfile "face" header)
+              simple-error)))
+
 ;;; test PLYFILE-ADD-COMMENT function
-(let ((plyfile (cl-ply::make-plyfile)))
+(let ((plyfile (cl-ply::%make-plyfile :stream nil)))
   ;; plyfile has no comments initially
   (ok (null (cl-ply::plyfile-comments plyfile)))
   ;; add comment
@@ -253,85 +307,142 @@ end_header
   (let ((comment (second (cl-ply::plyfile-comments plyfile))))
     (is (cl-ply::comment-text comment) "foo bar baz")))
 
-;;; test PLYFILE-READ-PROPERTIES function
-(let ((str "ply
-format ascii 1.0
-comment foo
-element vertex 1
-property float x
-property float y
-property float z
-element face 1
-property list uchar int vertex_index
-end_header
-0.0 0.0 0.0
-4 0 1 2 3"))
+
+;;;
+;;; test Plyfile - State management
+;;;
+
+
+;;;
+;;; test Plyfile - Properties reader
+;;;
+
+(diag "test Plyfile - Properties reader")
+
+;;; test PLYFILE-READ-PROPERTIES
+(with-input-from-string (stream +test-ply-data+)
+  (let ((plyfile (cl-ply:make-plyfile stream)))
+    ;; error if not in :reading state
+    (is-error (cl-ply::plyfile-read-properties plyfile) simple-error)
+    ;; :ready -> :reading
+    (let ((state (cl-ply::plyfile-state plyfile)))
+      (cl-ply::transfer-state state))
+    ;; work in :reading state
+    (is (cl-ply::plyfile-read-properties plyfile) '(0.0 1.0 2.0))))
+
+;;; test READ-PROPERTIES function for scalar properties element
+(let ((str "0.0 1.0 2.0
+3.0 4.0 5.0"))
   (with-input-from-string (stream str)
-    (let ((plyfile (cl-ply:ply-read stream)))
-      (cl-ply::plyfile-transfer-state plyfile) ; :ready   -> :reading
-      (is (cl-ply::plyfile-read-properties plyfile) '(0.0 0.0 0.0))
-      (cl-ply::plyfile-transfer-state plyfile) ; :reading -> :ready
-      (cl-ply::plyfile-transfer-state plyfile) ; :ready   -> :reading
-      (is (cl-ply::plyfile-read-properties plyfile) '(0 1 2 3))
-      (cl-ply::plyfile-transfer-state plyfile) ; :reading -> :finish
-      (ok (cl-ply::plyfile-finish-p plyfile))))
+    (let ((header0 (cl-ply::make-ply-header "element vertex 2"))
+          (header1 (cl-ply::make-ply-header "property float x"))
+          (header2 (cl-ply::make-ply-header "property float y"))
+          (header3 (cl-ply::make-ply-header "property float z")))
+      (let ((element (cl-ply::make-element header0)))
+        (cl-ply::element-add-property element header1)
+        (cl-ply::element-add-property element header2)
+        (cl-ply::element-add-property element header3)
+        (is (cl-ply::read-properties stream :ascii element) '(0.0 1.0 2.0))
+        (is (cl-ply::read-properties stream :ascii element) '(3.0 4.0 5.0))))))
+
+;;; test READ-PROPERTIES function for list properties element
+(let ((str "4 0 1 2 3
+4 4 5 6 7"))
   (with-input-from-string (stream str)
-    (let ((plyfile (cl-ply:ply-read stream)))
-      ;; need to be in :reading state
-      (is-error (cl-ply::plyfile-read-properties plyfile) simple-error))))
+    (let ((header0 (cl-ply::make-ply-header "element face 2"))
+          (header1 (cl-ply::make-ply-header
+                       "property list uchar int vertex_index")))
+      (let ((element (cl-ply::make-element header0)))
+        (cl-ply::element-add-property element header1)
+        (is (cl-ply::read-properties stream :ascii element) '(0 1 2 3))
+        (is (cl-ply::read-properties stream :ascii element) '(4 5 6 7))))))
 
+;;; test READ-PROPERTY function for integer types
+(let ((str "0 1 2 -3 -4 -5"))
+  (with-input-from-string (stream str)
+    (is (cl-ply::read-property stream :ascii :char) 0)
+    (is (cl-ply::read-property stream :ascii :short) 1)
+    (is (cl-ply::read-property stream :ascii :int) 2)
+    (is (cl-ply::read-property stream :ascii :char) -3)
+    (is (cl-ply::read-property stream :ascii :short) -4)
+    (is (cl-ply::read-property stream :ascii :int) -5)))
 
-;;; test READ-PROPERTY function
+;;; error if trying to read floating point numbers
+(let ((str "0.0 1.0 2.0"))
+  (with-input-from-string (stream str)
+    (is-error (cl-ply::read-property stream :ascii :char) simple-error)
+    (is-error (cl-ply::read-property stream :ascii :short) simple-error)
+    (is-error (cl-ply::read-property stream :ascii :int) simple-error)))
 
-(let ((str "0 1 2 3 4 5"))
+;;; error if trying to read strings
+(let ((str "foo bar baz"))
+  (with-input-from-string (stream str)
+    (is-error (cl-ply::read-property stream :ascii :char) simple-error)
+    (is-error (cl-ply::read-property stream :ascii :short) simple-error)
+    (is-error (cl-ply::read-property stream :ascii :int) simple-error)))
+
+;;; test READ-PROPERTY function for non negative integers
+(let ((str "0 1 2"))
   (with-input-from-string (stream str)
     (is (cl-ply::read-property stream :ascii :uchar) 0)
-    (is (cl-ply::read-property stream :ascii :char) 1)
-    (is (cl-ply::read-property stream :ascii :ushort) 2)
-    (is (cl-ply::read-property stream :ascii :short) 3)
-    (is (cl-ply::read-property stream :ascii :uint) 4)
-    (is (cl-ply::read-property stream :ascii :int) 5)))
+    (is (cl-ply::read-property stream :ascii :ushort) 1)
+    (is (cl-ply::read-property stream :ascii :uint) 2)))
 
-(let ((str "-1"))
+;;; error if trying to read negative integers
+(let ((str "-1 -2 -3"))
   (with-input-from-string (stream str)
-    (is-error (cl-ply::read-property stream :ascii :uchar) simple-error))
-  (with-input-from-string (stream str)
-    (is-error (cl-ply::read-property stream :ascii :ushort) simple-error))
-  (with-input-from-string (stream str)
+    (is-error (cl-ply::read-property stream :ascii :uchar) simple-error)
+    (is-error (cl-ply::read-property stream :ascii :ushort) simple-error)
     (is-error (cl-ply::read-property stream :ascii :uint) simple-error)))
 
-(let ((str "0.12345678901 0.123456789012"))
+;;; error if trying to read floating point numbers
+(let ((str "1.0 2.0 3.0"))
   (with-input-from-string (stream str)
-    (is (cl-ply::read-property stream :ascii :float) 0.123456789s0)
-    (is (cl-ply::read-property stream :ascii :double) 0.123456789012d0)))
+    (is-error (cl-ply::read-property stream :ascii :uchar) simple-error)
+    (is-error (cl-ply::read-property stream :ascii :ushort) simple-error)
+    (is-error (cl-ply::read-property stream :ascii :uint) simple-error)))
 
-(let ((str "0 1"))
+;;; error if trying to read strings
+(let ((str "foo bar baz"))
   (with-input-from-string (stream str)
-    (is (cl-ply::read-property stream :ascii :float) 0s0)
-    (is (cl-ply::read-property stream :ascii :double) 1d0)))
+    (is-error (cl-ply::read-property stream :ascii :uchar) simple-error)
+    (is-error (cl-ply::read-property stream :ascii :ushort) simple-error)
+    (is-error (cl-ply::read-property stream :ascii :uint) simple-error)))
 
-(let ((str "foo"))
-  (with-input-from-string (stream str)
-    (is-error (cl-ply::read-property stream :ascii :uchar) error)))
-
-(let ((str "1e0 2e-1"))
+;;; test READ-PROPERTY function for floating point numbers
+(let ((str "1.0 2.0"))
   (with-input-from-string (stream str)
     (is (cl-ply::read-property stream :ascii :float) 1s0)
-    (is (cl-ply::read-property stream :ascii :double) 2d-1)))
+    (is (cl-ply::read-property stream :ascii :double) 2d0)))
 
-(let ((str "1234 2.0
-3.0 \"4 5\""))
+;;; error if trying to read strings
+(let ((str "foo bar"))
   (with-input-from-string (stream str)
+    (is-error (cl-ply::read-property stream :ascii :float) simple-error)
+    (is-error (cl-ply::read-property stream :ascii :double) simple-error)))
+
+;;; test READ-WORD function
+(let ((str "foo 1234 2.0
+3.0 \"4 5\"   "))
+  (with-input-from-string (stream str)
+    (is (cl-ply::read-word stream) "foo")
     (is (cl-ply::read-word stream) "1234")
     (is (cl-ply::read-word stream) "2.0")
     (is (cl-ply::read-word stream) "3.0")
     (is (cl-ply::read-word stream) "\"4")
-    (is (cl-ply::read-word stream) "5\"")))
+    (is (cl-ply::read-word stream) "5\"")
+    (is-error (cl-ply::read-word stream) end-of-file)))
+
+;;; test READ-PROPERTY-BINARY-BE function
+
+;;; test READ-PROPERTY-BINARY-LE function
 
 
 ;;;
 ;;; test Element
 ;;;
+
+(diag "test Element")
 
 ;;; element with scalar property can have scalar properties only
 (let ((element (cl-ply::make-element
@@ -568,10 +679,10 @@ end_header
 
 
 ;;;
-;;; test types
+;;; test parsing for types in PLY format
 ;;;
 
-(diag "test types")
+(diag "test parsing for types in PLY format")
 
 ;;; test %PARSE-INTEGER function
 (is (cl-ply::%parse-integer "1") 1)

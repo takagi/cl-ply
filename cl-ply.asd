@@ -16,7 +16,7 @@
   :version "0.1-SNAPSHOT"
   :author "Masayuki Takagi"
   :license "LLGPL"
-  :depends-on ()
+  :depends-on (:alexandria)
   :components ((:module "src"
                 :serial t
                 :components

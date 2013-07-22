@@ -7,149 +7,150 @@
 
 
 ;;;
-;;; Reading Ply file
+;;; Plyfile
 ;;;
 
-(defun ply-open-for-reading (filename)
-  "Open a polygon file for reading."
-  (let ((name (append-extension-if-necessary filename)))
-    (let ((fp (open name :direction :input)))
-      (ply-read fp))))
+(defstruct (plyfile (:constructor %make-plyfile))
+  (stream nil :read-only t)
+  state
+  file-type
+  version
+  elements
+  comments)
 
-(defun ply-close (plyfile)
-  (close (plyfile-stream plyfile)))
+(defun open-plyfile (filename)
+  (let ((filename1 (append-extension-if-necessary filename)))
+    (let ((stream (open filename1 :direction :input)))
+      (make-plyfile stream))))
 
 (defun append-extension-if-necessary (filename)
-  "Tack on the extension .ply, if necessary."
   (labels ((ends-with (str suffix)
-             (let* ((n (length suffix))
-                    (suffix0 (reverse (subseq (reverse str) 0 n))))
-               (string/= suffix0 suffix)))
-           (append-extension (filename)
-             (concatenate 'string filename ".ply")))
+             (let ((n (length suffix)))
+               (let ((suffix0 (reverse (subseq (reverse str) 0 n))))
+                 (string/= suffix0 suffix)))))
     (cond
-      ((< (length filename) 4)     (append-extension filename))
-      ((ends-with filename ".ply") (append-extension filename))
+      ((< (length filename) 4)     (concatenate 'string filename ".ply"))
+      ((ends-with filename ".ply") (concatenate 'string filename ".ply"))
       (t                           filename))))
 
-(defun ply-read (stream)
-  "Given a file stream, get ready to read PLY data from the file."
-  (let ((plyfile (make-plyfile :stream stream)))
-    ;; read PLY header which must be the first line
+(defun make-plyfile (stream)
+  (let ((plyfile (%make-plyfile :stream stream)))
+    ;; read PLY header in the first line
     (let ((header (make-ply-header (read-line stream))))
       (unless (magic-header-p header)
         (error "PLY file must start with \"ply\" magic number")))
-    ;; read FORMAT header which must follow the PLY header
+    ;; read FORMAT header in the second line
     (let ((header (make-ply-header (read-line stream))))
       (unless (format-header-p header)
         (error "FORMAT header must follow PLY header"))
       (plyfile-set-format plyfile header))
     ;; read the rest of header lines
-    (loop for   header = (make-ply-header (read-line stream))
-          with  current-element = nil
+    (loop with  current-element = nil
+          for   line   = (read-line stream)
+          for   header = (make-ply-header line)
           until (end-header-p header)
-       ; ELEMENT header
+       ;; ELEMENT header
        when (element-header-p header)
          do (plyfile-add-element plyfile header)
             (setf current-element (element-header-name header))
-       ; PROPERTY header
+       ;; PROPERTY header
        when (property-header-p header)
          do (unless current-element
               (error "PROPERTY header must follow ELEMENT header"))
             (plyfile-add-property plyfile current-element header)
-       ; COMMENT header
+       ;; COMMENT header
        when (comment-header-p header)
          do (plyfile-add-comment plyfile header)
-       ; invalid headers
+       ;; invalid header
        unless (or (element-header-p header)
                   (property-header-p header)
                   (comment-header-p header))
-         do (error "found invalid header: ~A" header))
+         do (error "found invalid header: ~S" line))
     ;; initialize state to be ready to read elements
     (plyfile-initialize-state plyfile)
     plyfile))
 
-(defmacro with-ply-element ((props element-name plyfile) &body body)
-  `(progn
-     (unless (plyfile-ready-p ,plyfile ,element-name)
-       (error "plyfile is not in :ready state for ~S" ,element-name))
-     (plyfile-transfer-state ,plyfile)  ; transfer :ready -> :reading
-     (loop repeat (plyfile-current-element-size ,plyfile)
-        do ,(if (consp props)
-                `(destructuring-bind ,props
-                     (plyfile-read-properties ,plyfile)
-                   ,@body)
-                `(let ((,props (plyfile-read-properties ,plyfile)))
-                   ,@body)))
-     (plyfile-transfer-state ,plyfile))) ;transfer :reading -> :ready|:finish
+(defun close-plyfile (plyfile)
+  (close (plyfile-stream plyfile)))
 
 (defun read-ply-element (element-name plyfile)
-  (unless (plyfile-ready-p plyfile element-name)
-    (error "plyfile is not in :ready state for ~S" element-name))
-  (plyfile-transfer-state plyfile)     ; transfer :ready -> :reading
-  (prog1
-      (loop repeat (plyfile-current-element-size plyfile)
-         collect (plyfile-read-properties plyfile))
-    (plyfile-transfer-state plyfile))) ; transfer :reading -> :ready|:finish
+  (let ((state (plyfile-state plyfile)))
+    ;; check appropreate current state
+    (unless (state-ready-p state element-name)
+      (error "not in :ready state for ~S" element-name))
+    ;; transfer state from :ready to :reading
+    (transfer-state state)
+    (prog1
+        ;; read propreties in element and return them as list
+        (loop
+           with stream    = (plyfile-stream plyfile)
+           with file-type = (plyfile-file-type plyfile)
+           with current-element = (plyfile-current-element plyfile)
+           repeat (element-size current-element)
+           collect (read-properties stream file-type current-element))
+      ;; transfer state from :reading to next :ready or :finish
+      (transfer-state state))))
+
+(defmacro with-ply-element ((props element-name plyfile) &body body)
+  (alexandria:with-gensyms (state current-element stream file-type)
+    `(let ((,state (plyfile-state ,plyfile)))
+       ;; check appropreate current state
+       (unless (state-ready-p ,state ,element-name)
+         (error "not in :ready state for ~S" ,element-name))
+       ;; transfer state from :ready to :reading
+       (transfer-state ,state)
+       ;; read properties and evaluate body forms for each properties
+       (loop
+          with ,stream    = (plyfile-stream ,plyfile)
+          with ,file-type = (plyfile-file-type ,plyfile)
+          with ,current-element = (plyfile-current-element ,plyfile)
+          repeat (element-size ,current-element)
+          do ,(if (consp props)
+                  `(destructuring-bind ,props
+                       (read-properties ,stream ,file-type ,current-element)
+                     ,@body)
+                  `(let ((,props (read-properties ,stream ,file-type
+                                                  ,current-element)))
+                     ,@body)))
+       ;; transfer state from :reading to next :ready or :finish
+       (transfer-state ,state))))
 
 
 ;;;
-;;; Plyfile 
+;;; Plyfile - Element selectors
 ;;;
-
-(defstruct plyfile
-  (stream nil :read-only t)
-  state
-  file-type
-  version
-  raw-elements                          ; alist { name -> element }
-  comments)
-
-
-;;; selectors on elements
-
-(defun plyfile-elements (plyfile)
-  (mapcar #'cdr (plyfile-raw-elements plyfile)))
 
 (defun plyfile-element (plyfile name)
-  (let ((raw-elements (plyfile-raw-elements plyfile)))
-    (cdr (assoc name raw-elements :test #'string=))))
+  (let ((elements (plyfile-elements plyfile)))
+    (find name elements :key #'element-name :test #'string=)))
 
 (defun plyfile-element-names (plyfile)
   (mapcar #'element-name (plyfile-elements plyfile)))
 
-
-;;; selectors on current element
-
 (defun plyfile-current-element (plyfile)
-  (let* ((state (plyfile-state plyfile))
-         (current-element-name (state-current-element-name state)))
-    (or (plyfile-element plyfile current-element-name)
-        (error "element does not exist: ~S" current-element-name))))
+  (let ((state (plyfile-state plyfile)))
+    (unless (not (state-finish-p state))
+      (error "already finished to read all elements"))
+    (let ((current-element-name (state-current-element-name state)))
+      (or (plyfile-element plyfile current-element-name)
+          (error "element does not exist: ~S" current-element-name)))))
 
 
-(defun plyfile-current-element-name (plyfile)
-  (let ((current-element (plyfile-current-element plyfile)))
-    (element-name current-element)))
-
-(defun plyfile-current-element-size (plyfile)
-  (let ((current-element (plyfile-current-element plyfile)))
-    (element-size current-element)))
-
-
-;;; procedures to add headers into plyfile
+;;;
+;;; Pryfile - Plyfile builder
+;;;
 
 (defun plyfile-set-format (plyfile header)
   (setf (plyfile-file-type plyfile) (format-header-file-type header)
         (plyfile-version   plyfile) (format-header-version   header)))
 
 (defun plyfile-add-element (plyfile header)
-  (symbol-macrolet ((raw-elements (plyfile-raw-elements plyfile)))
-    (let ((name     (element-header-name header))
-          (element  (make-element header)))
-      (unless (null (assoc name raw-elements :test #'string=))
-        (error "given element already exists: ~A" name))
-      (setf raw-elements (acons-last name element raw-elements)))))
+  (symbol-macrolet ((elements (plyfile-elements plyfile)))
+    (let ((name (element-header-name header)))
+      (unless (null (plyfile-element plyfile name))
+        (error "element already exists: ~S" name)))
+    (let ((element (make-element header)))
+      (setf elements (cons-last element elements)))))
 
 (defun plyfile-add-property (plyfile current-element header)
   (let ((element (plyfile-element plyfile current-element)))
@@ -193,13 +194,13 @@
 ;;;
 
 (defun plyfile-read-properties (plyfile)
-  (let ((current-element-name (plyfile-current-element-name plyfile)))
-    (unless (plyfile-reading-p plyfile current-element-name)
-      (error "plyfile is not in :reading state")))
-  (let ((stream (plyfile-stream plyfile))
-        (file-type (plyfile-file-type plyfile))
-        (element (plyfile-current-element plyfile)))
-    (read-properties stream file-type element)))
+  (let ((current-element (plyfile-current-element plyfile)))
+    (let ((name (element-name current-element)))
+      (unless (plyfile-reading-p plyfile name)
+        (error "plyfile is not in :reading state")))
+    (let ((stream (plyfile-stream plyfile))
+          (file-type (plyfile-file-type plyfile)))
+      (read-properties stream file-type current-element))))
 
 (defun read-properties (stream file-type element)
   (cond
@@ -232,7 +233,7 @@
 (defun read-property-ascii (stream element-type)
   (let ((word (read-word stream)))
     (ecase element-type
-      ((:char :short :int)    (parse-integer word))
+      ((:char :short :int)    (%parse-integer word))
       ((:uchar :ushort :uint) (parse-non-negative-integer word))
       (:float                 (parse-single-float word))
       (:double                (parse-double-float word)))))
@@ -265,7 +266,7 @@
 (defstruct (element (:constructor %make-element))
   (name nil :read-only t)
   (size nil :read-only t)
-  raw-properties)                       ; alist { name -> property }
+  properties)
 
 (defun make-element (header)
   (%make-element :name (element-header-name header)
@@ -278,16 +279,16 @@
         (element-add-list-property element property))))
 
 (defun element-add-scalar-property (element property)
-  (symbol-macrolet ((raw-properties (element-raw-properties element)))
+  (symbol-macrolet ((properties (element-properties element)))
     (let ((name (scalar-property-name property)))
       (unless (null (element-property element name))
         (error "given property already exists: ~A" name))
       (unless (not (element-list-properties-p element))
         (error "element can have one list property at most"))
-      (setf raw-properties (acons-last name property raw-properties)))))
+      (setf properties (cons-last property properties)))))
 
 (defun element-add-list-property (element property)
-  (symbol-macrolet ((raw-properties (element-raw-properties element)))
+  (symbol-macrolet ((properties (element-properties element)))
     (let ((name (list-property-name property)))
       (unless (null (element-property element name))
         (error "given property already exists: ~A" name))
@@ -295,14 +296,11 @@
         (error "element with scalar property can have scalar properties only"))
       (unless (not (element-list-properties-p element))
         (error "element can have one list property at most"))
-      (setf raw-properties (acons-last name property raw-properties)))))
-
-(defun element-properties (element)
-  (mapcar #'cdr (element-raw-properties element)))
+      (setf properties (cons-last property properties)))))
 
 (defun element-property (element name)
-  (let ((raw-properties (element-raw-properties element)))
-    (cdr (assoc name raw-properties :test #'string=))))
+  (let ((properties (element-properties element)))
+    (find name properties :key #'property-name :test #'string=)))
 
 (defun element-scalar-properties-p (element)
   (let ((first-property (first (element-properties element))))
@@ -337,6 +335,11 @@
      (make-list-property :count-type (list-property-header-count-type header)
                          :element-type (list-property-header-element-type header)
                          :name (list-property-header-name header)))))
+
+(defun property-name (property)
+  (cond
+    ((scalar-property-p property) (scalar-property-name property))
+    ((list-property-p property) (list-property-name property))))
 
 
 ;;;
@@ -559,7 +562,7 @@
 
 
 ;;;
-;;; Parsing types in PLY format
+;;; Parsing for types in PLY format
 ;;;
 
 (defparameter +ply-types+ '(("char"   . :char)
@@ -645,14 +648,6 @@
      (read-from-string string))
     (;; otherwise error
      t (error "invalid string for double float: ~S" string))))
-
-
-;;;
-;;; Operations for alist
-;;;
-
-(defun acons-last (key datum alist)
-  (nreverse (acons key datum (nreverse alist))))
 
 
 ;;;

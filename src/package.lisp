@@ -6,8 +6,8 @@
 (in-package :cl-user)
 (defpackage cl-ply
   (:use :cl)
-  (:export #:ply-open-for-reading
-           #:ply-close
-           #:ply-read
-           #:with-ply-element
-           #:read-ply-element))
+  (:export #:open-plyfile
+           #:make-plyfile
+           #:close-plyfile
+           #:read-ply-element
+           #:with-ply-element))
