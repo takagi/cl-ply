@@ -4,6 +4,8 @@ A library to handle PLY file format which is known as the Polygon File Format or
 
 ## Usage
 
+I will fill this section later.
+
 ## Installation
 
 Since cl-ply is not available in Quicklisp yet, please use Quicklisp's local-projects feature to use it.
