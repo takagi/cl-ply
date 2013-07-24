@@ -80,6 +80,12 @@ property float x"))
   (with-input-from-string (stream str)
     (is-error (cl-ply:make-plyfile stream) simple-error)))
 
+;;; test WITH-PLYFILE macro
+(let ((path (asdf:system-relative-pathname :cl-ply #P"t/test.ply")))
+  (cl-ply:with-plyfile (plyfile path)
+    (ok (cl-ply:read-ply-element "vertex" plyfile))
+    (ok (cl-ply:read-ply-element "face" plyfile))))
+
 ;;; test WITH-PLY-ELEMENT macro
 (with-input-from-string (stream +test-ply-data+)
   (let ((plyfile (cl-ply:make-plyfile stream)))

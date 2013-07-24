@@ -62,6 +62,11 @@
 (defun close-plyfile (plyfile)
   (close (plyfile-stream plyfile)))
 
+(defmacro with-plyfile ((var filespec) &body body)
+  `(let ((,var (open-plyfile ,filespec)))
+     (unwind-protect ,@body
+       (close-plyfile ,var))))
+
 (defun read-ply-element (element-name plyfile)
   (let ((state (plyfile-state plyfile)))
     ;; check appropreate current state

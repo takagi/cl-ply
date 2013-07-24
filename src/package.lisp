@@ -9,5 +9,6 @@
   (:export #:open-plyfile
            #:make-plyfile
            #:close-plyfile
+           #:with-plyfile
            #:read-ply-element
            #:with-ply-element))
