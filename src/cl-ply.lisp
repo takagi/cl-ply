@@ -19,19 +19,8 @@
   comments)
 
 (defun open-plyfile (filename)
-  (let ((filename1 (append-extension-if-necessary filename)))
-    (let ((stream (open filename1 :direction :input)))
-      (make-plyfile stream))))
-
-(defun append-extension-if-necessary (filename)
-  (labels ((ends-with (str suffix)
-             (let ((n (length suffix)))
-               (let ((suffix0 (reverse (subseq (reverse str) 0 n))))
-                 (string/= suffix0 suffix)))))
-    (cond
-      ((< (length filename) 4)     (concatenate 'string filename ".ply"))
-      ((ends-with filename ".ply") (concatenate 'string filename ".ply"))
-      (t                           filename))))
+  (let ((stream (open filename :direction :input)))
+    (make-plyfile stream)))
 
 (defun make-plyfile (stream)
   (let ((plyfile (%make-plyfile :stream stream)))

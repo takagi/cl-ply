@@ -30,10 +30,9 @@ end_header
 4 0 1 2 3
 4 4 5 6 7")
 
-;;; test APPEND-EXTENSION-IF-NECESSARY function
-(is (cl-ply::append-extension-if-necessary "foobar.ply") "foobar.ply")
-(is (cl-ply::append-extension-if-necessary "foobar") "foobar.ply")
-(is (cl-ply::append-extension-if-necessary "foo") "foo.ply")
+;;; test OPEN-PLYFILE function
+(let ((path (asdf:system-relative-pathname :cl-ply #P"t/test.ply")))
+  (ok (cl-ply:open-plyfile path)))
 
 ;;; test MAKE-PLYFILE function
 (with-input-from-string (stream +test-ply-data+)
