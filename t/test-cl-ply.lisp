@@ -93,6 +93,24 @@ property float x"))
         (push vertex_indices result))
       (is result '((4 5 6 7) (0 1 2 3))))))
 
+;;; error if variable names do not match corresponding properties
+(with-input-from-string (stream +test-ply-data+)
+  (let ((plyfile (cl-ply:make-plyfile stream)))
+    (is-error (cl-ply:with-ply-element (x "vertex" plyfile)
+                (declare (ignore x)))
+              simple-error)))
+(with-input-from-string (stream +test-ply-data+)
+  (let ((plyfile (cl-ply:make-plyfile stream)))
+    (is-error (cl-ply:with-ply-element ((x y) "vertex" plyfile)
+                (declare (ignore x y)))
+              error)))
+(with-input-from-string (stream +test-ply-data+)
+  (let ((plyfile (cl-ply:make-plyfile stream)))
+    (read-ply-element "vertex" plyfile) ; consume "vertex" element
+    (is-error (cl-ply:with-ply-element ((x) "face" plyfile)
+                (declare (ignore x)))
+              simple-error)))
+
 ;;; error if trying to read other elements than ready to be read
 (with-input-from-string (stream +test-ply-data+)
   (let ((plyfile (cl-ply:make-plyfile stream)))

@@ -93,27 +93,41 @@
 
 (defmacro with-ply-element ((props element-name plyfile) &body body)
   (alexandria:with-gensyms (state current-element stream file-type)
-    `(let ((,state (plyfile-state ,plyfile)))
+    `(progn
        ;; check appropreate current state
-       (unless (state-ready-p ,state ,element-name)
-         (error "not in :ready state for ~S" ,element-name))
-       ;; transfer state from :ready to :reading
-       (transfer-state ,state)
+       (let ((,state (plyfile-state ,plyfile)))
+         (unless (state-ready-p ,state ,element-name)
+           (error "not in :ready state for ~S" ,element-name)))
+       ;; check validity of property variables
+       (let ((,current-element (plyfile-current-element ,plyfile)))
+         (when (element-scalar-properties-p ,current-element)
+           (unless (listp ',props)
+             (error "variable names must be list: ~S" ',props)))
+         (when (element-list-properties-p ,current-element)
+           (unless (symbolp ',props)
+             (error "variable name must be symbol: ~S" ',props))))
        ;; read properties and evaluate body forms for each properties
-       (loop
-          with ,stream    = (plyfile-stream ,plyfile)
-          with ,file-type = (plyfile-file-type ,plyfile)
-          with ,current-element = (plyfile-current-element ,plyfile)
-          repeat (element-size ,current-element)
-          do ,(if (consp props)
-                  `(destructuring-bind ,props
-                       (read-properties ,stream ,file-type ,current-element)
-                     ,@body)
-                  `(let ((,props (read-properties ,stream ,file-type
-                                                  ,current-element)))
-                     ,@body)))
-       ;; transfer state from :reading to next :ready or :finish
-       (transfer-state ,state))))
+       (let ((,state (plyfile-state ,plyfile))
+             (,current-element (plyfile-current-element ,plyfile)))
+         ;; transfer state from :ready to :reading
+         (transfer-state ,state)
+         ;; main procedure in this macro
+         (loop
+            with ,stream    = (plyfile-stream ,plyfile)
+            with ,file-type = (plyfile-file-type ,plyfile)
+            repeat (element-size ,current-element)
+            do ,(if (listp props)
+                    `(destructuring-bind ,props
+                         (read-properties ,stream ,file-type
+                                          ,current-element)
+                       ,@body)
+                    `(let ((,props (read-properties ,stream ,file-type
+                                                    ,current-element)))
+                       ,@body)))
+         ;; transfer state from :reading to next :ready or :finish
+         (transfer-state ,state)
+         ;; return no value
+         (values)))))
 
 
 ;;;
