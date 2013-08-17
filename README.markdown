@@ -4,7 +4,45 @@ A library to handle PLY file format which is known as the Polygon File Format or
 
 ## Usage
 
-I will fill this section later.
+With `t/test.ply` file:
+
+    ply
+    format ascii 1.0
+    comment this is test ply data.
+    element vertex 2
+    property float x
+    property float y
+    property float z
+    element face 2
+    property list uchar int vertex_index
+    end_header
+    0.0 1.0 2.0
+    3.0 4.0 5.0
+    4 0 1 2 3
+    4 4 5 6 7
+
+Do something with a element per line:
+
+    (cl-ply:with-ply-file (plyfile "t/test.ply")
+    
+      ;; do something with scalar properties of "vertex" element
+      (cl-ply:with-ply-element ((x y z) "vertex" plyfile)
+        (do-something :for 'vertex :x x :y y :z))
+    
+      ;; do something with list properties of "face" element
+      (cl-ply:with-ply-element (vertex-indices "face" plyfile)
+        (do-something :for 'face :with vertex-indices)))
+
+Get a list of properties with a element:
+
+    (cl-ply:with-ply-file (plyfile "t/test.ply")
+    
+      ;; list of scalar properties of "vertex" element
+      (cl-ply:read-ply-element "vertex" plyfile)  ; => ((0.0 1.0 2.0) (3.0 4.0 5.0))
+    
+      ;; list of list properties of "face" element
+      (cl-ply:read-ply-element "face" plyfile))   ; => ((0 1 2 3) (4 5 6 7))
+
 
 ## Installation
 
