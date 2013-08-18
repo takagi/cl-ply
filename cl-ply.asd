@@ -13,7 +13,7 @@
 (in-package :cl-ply-asd)
 
 (defsystem cl-ply
-  :version "0.1-SNAPSHOT"
+  :version "0.1"
   :author "Masayuki Takagi"
   :license "LLGPL"
   :depends-on (:alexandria :cl-ppcre)
