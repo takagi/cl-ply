@@ -22,7 +22,7 @@
                 :components
                 ((:file "package")
                  (:file "cl-ply"))))
-  :description ""
+  :description "A library to handle PLY file format which is known as the Polygon File Format or the Stanford Triangle Format in Common Lisp."
   :long-description
   #.(with-open-file (stream (merge-pathnames
                              #p"README.markdown"
