@@ -1,6 +1,6 @@
 # Cl-Ply
 
-A library to handle PLY file format which is known as the Polygon File Format or the Stanford Triangle Format in Common Lisp.
+Cl-ply is a library to handle PLY format which is also known as the Stanford Triangle Format.
 
 ## Example
 
