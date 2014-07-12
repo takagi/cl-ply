@@ -2,9 +2,11 @@
 
 A library to handle PLY file format which is known as the Polygon File Format or the Stanford Triangle Format in Common Lisp.
 
-## Usage
+## Example
 
-With `t/test.ply` file:
+Here shows how to read PLY format with cl-ply.
+
+An example PLY data is following:
 
     ply
     format ascii 1.0
@@ -21,39 +23,80 @@ With `t/test.ply` file:
     4 0 1 2 3
     4 4 5 6 7
 
-Do something with a element per line:
+There are an element `vertex` with three float properties and another element `face` with a list property of type int.
 
-    (cl-ply:with-ply-file (plyfile "t/test.ply")
-    
-      ;; do something with scalar properties of "vertex" element
-      (cl-ply:with-ply-element ((x y z) "vertex" plyfile)
-        (do-something :for 'vertex :x x :y y :z))
-    
-      ;; do something with list properties of "face" element
-      (cl-ply:with-ply-element (vertex-indices "face" plyfile)
-        (do-something :for 'face :with vertex-indices)))
+You can read this PLY data into arrays in imperative style as following:
 
-Get a list of properties with a element:
+    (cl-ply:with-ply-file (plyfile "/path/to/file.ply")
+      (let ((vertex-size (cl-ply:plyfile-element-size plyfile "vertex"))
+            (face-size (cl-ply:plyfile-element-size plyfile "face")))
+        (let ((vertices (make-array vertex-size))
+              (faces (make-array face-size)))
+          ;; read vertices
+          (loop repeat vertex-size
+                for i from 0
+             do (cl-ply:with-ply-element ((x y z) plyfile)
+                  (setf (aref vertices i) (list x y z))))
+          ;; read faces
+          (loop repeat face-size
+                for i from 0
+             do (cl-ply:with-ply-element (vertex-index plyfile)
+                  (setf (aref faces i) vertex-index)))
+          ;; return vertex and face arrays
+          (values vertices faces))))
 
-    (cl-ply:with-ply-file (plyfile "t/test.ply")
-    
-      ;; list of scalar properties of "vertex" element
-      (cl-ply:read-ply-element "vertex" plyfile)  ; => ((0.0 1.0 2.0) (3.0 4.0 5.0))
-    
-      ;; list of list properties of "face" element
-      (cl-ply:read-ply-element "face" plyfile))   ; => ((0 1 2 3) (4 5 6 7))
+Additionally, cl-ply also provides a functional style interface.
 
+    (cl-ply:read-ply-elements "/path/to/file.ply" "vertex") => ((0.0 1.0 2.0) (3.0 4.0 5.0))
+    (cl-ply:read-ply-elements "/path/to/file.ply" "face") => ((0 1 2 3) (4 5 6 7))
+
+Although the imperative one would be superior in performance, the functional one would be convenient in some cases.
 
 ## Installation
 
-Since cl-ply is not available in Quicklisp yet, please use Quicklisp's local-projects feature to use it.
+You can install cl-ply via Quicklisp:
 
-    $ cd ~/quicklisp/local-projects
-    $ git clone git://github.com/takagi/cl-ply.git
+    (ql:quicklisp :cl-ply)
 
-Then `(ql:quickload :cl-ply)` from `REPL` to load it.
+## API
 
-I will apply registering cl-ply to Quicklisp later. After it will be accepted, you will be able to load cl-ply just `(ql:quickload :cl-ply)` only.
+    WITH-PLYFILE (plyfile filespec) &body body => results
+
+Opens a file stream to named by `filespec` and create a plyfile object, reading PLY headers from the file. The plyfile object is bound to `plyfile` variable. `with-plyfile` evaluates `body` as an implicit progn with `plyfile` and returns the result values. When control leaves the body, either normally and abnormally, the stream is automatically closed.
+
+    PLYFILE-ELEMENT-SIZE plyfile element-name => size
+
+Returns the number of elements in `plyfile` named by `element-name`.
+
+    READ-PLY-ELEMENT plyfile => result
+
+Reads an element from `plyfile` and returns it as a list.
+
+    WITH-PLY-ELEMENT (vars plyfile) &body body => results
+
+Reads the next element of `plyfile` using `read-ply-element` in its expanded form and binds the result to `vars` with destructuring. Then evaluates `body` and returns its result values.
+
+    READ-PLY-ELEMENTS filespec element-name => element-list
+
+Reads all elements named by `element-name` from a file `filespec` and returns them as a list. The other elements before `element-name` element are skipped.
+
+## FAQ
+
+**Q. Does cl-ply support writing PLY format?**
+
+A. Currenly, only reading PLY format is supported.
+
+**Q. Does cl-ply support reading / writing PLY format in binary type?**
+
+A. Currently, only ASCII type is supported.
+
+**Q. Is an element able to be read which has scalar properties and list properties?**
+
+A. Since such element supposed to be nonsense in PLY format, cl-ply does not support reading it and causes an error.
+
+## Reference
+
+* [PLY - Polygon File Format](http://paulbourke.net/dataformats/ply/)
 
 ## Author
 
@@ -63,7 +106,6 @@ I will apply registering cl-ply to Quicklisp later. After it will be accepted, y
 
 Copyright (c) 2013 Masayuki Takagi (kamonama@gmail.com)
 
-# License
+## License
 
 Licensed under the LLGPL License.
-

@@ -3,10 +3,6 @@
   Copyright (c) 2013 Masayuki Takagi (kamonama@gmail.com)
 |#
 
-#|
-  Author: Masayuki Takagi (kamonama@gmail.com)
-|#
-
 (in-package :cl-user)
 (defpackage cl-ply-asd
   (:use :cl :asdf))
@@ -16,13 +12,12 @@
   :version "0.1"
   :author "Masayuki Takagi"
   :license "LLGPL"
-  :depends-on (:alexandria :cl-ppcre)
+  :depends-on (:alexandria :cl-ppcre :cl-pattern)
   :components ((:module "src"
                 :serial t
                 :components
-                ((:file "package")
-                 (:file "cl-ply"))))
-  :description "A library to handle PLY file format which is known as the Polygon File Format or the Stanford Triangle Format in Common Lisp."
+                ((:file "cl-ply"))))
+  :description "Cl-ply is a library to handle PLY format which is also known as the Stanford Triangle Format."
   :long-description
   #.(with-open-file (stream (merge-pathnames
                              #p"README.markdown"

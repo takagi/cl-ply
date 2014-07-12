@@ -16,6 +16,5 @@
   :components ((:module "t"
                 :serial t
                 :components
-                ((:file "package")
-                 (:file "test-cl-ply"))))
+                ((:file "cl-ply"))))
   :perform (load-op :after (op c) (asdf:clear-system c)))
