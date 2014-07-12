@@ -60,21 +60,31 @@ You can install cl-ply via Quicklisp:
 
 ## API
 
+### [Macro] with-plyfile
+
     WITH-PLYFILE (plyfile filespec) &body body => results
 
 Opens a file stream to named by `filespec` and create a plyfile object, reading PLY headers from the file. The plyfile object is bound to `plyfile` variable. `with-plyfile` evaluates `body` as an implicit progn with `plyfile` and returns the result values. When control leaves the body, either normally and abnormally, the stream is automatically closed.
+
+### [Function] plyfile-element-size
 
     PLYFILE-ELEMENT-SIZE plyfile element-name => size
 
 Returns the number of elements in `plyfile` named by `element-name`.
 
+### [Function] read-ply-element
+
     READ-PLY-ELEMENT plyfile => result
 
 Reads an element from `plyfile` and returns it as a list.
 
+### [Macro] with-ply-element
+
     WITH-PLY-ELEMENT (vars plyfile) &body body => results
 
 Reads the next element of `plyfile` using `read-ply-element` in its expanded form and binds the result to `vars` with destructuring. Then evaluates `body` and returns its result values.
+
+### [Function] read-ply-elements
 
     READ-PLY-ELEMENTS filespec element-name => element-list
 
