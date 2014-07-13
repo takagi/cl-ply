@@ -322,7 +322,7 @@
   count)
 
 (defun make-plyfile (stream)
-  (declare (stream stream))
+  (declare (type stream stream))
   (%make-plyfile :stream stream))
 
 (defun plyfile-current-element (plyfile)
@@ -364,12 +364,12 @@
     (_ (error "The value ~S is an invalid FORMAT header." header))))
 
 (defun plyfile-add-element (plyfile element)
-  (declare (element element))
+  (declare (type element element))
   (setf (plyfile-elements plyfile)
         (cons-last element (plyfile-elements plyfile))))
 
 (defun plyfile-add-comment (plyfile comment)
-  (declare (comment comment))
+  (declare (type comment comment))
   (setf (plyfile-comments plyfile)
         (cons-last comment (plyfile-comments plyfile))))
 
@@ -399,7 +399,7 @@
          (list-property-p property))))
 
 (defun element-add-property (element property)
-  (declare (property property))
+  (declare (type property property))
   (unless (not (and (element-properties element)
                     (element-scalar-property-p element)
                     (list-property-p property)))
@@ -527,7 +527,7 @@
        ,@body)))
 
 (defun read-ply-elements (filespec element-name)
-  (declare (string element-name))
+  (declare (type string element-name))
   (with-plyfile (plyfile filespec)
     ;; skip until current element's name is ELEMENT-NAME
     (loop until (string= (plyfile-current-element-name plyfile)
