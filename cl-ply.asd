@@ -12,7 +12,7 @@
   :version "0.1"
   :author "Masayuki Takagi"
   :license "LLGPL"
-  :depends-on (:alexandria :cl-ppcre :cl-pattern)
+  :depends-on (:cl-ppcre :cl-pattern)
   :components ((:module "src"
                 :serial t
                 :components

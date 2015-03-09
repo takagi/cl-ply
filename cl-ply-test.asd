@@ -12,7 +12,7 @@
   :author "Masayuki Takagi"
   :license "LLGPL"
   :depends-on (:cl-ply
-               :cl-test-more)
+               :prove)
   :components ((:module "t"
                 :serial t
                 :components

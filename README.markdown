@@ -4,9 +4,9 @@ Cl-ply is a library to handle PLY format which is also known as the Stanford Tri
 
 ## Example
 
-Here shows how to read PLY format with cl-ply.
+Here shows hot to read PLY file with cl-ply.
 
-An example PLY data is following:
+The following is an example PLY file:
 
     ply
     format ascii 1.0
@@ -16,93 +16,93 @@ An example PLY data is following:
     property float y
     property float z
     element face 2
-    property list uchar int vertex_index
+    property list uchar int vertex_indices
     end_header
     0.0 1.0 2.0
     3.0 4.0 5.0
     4 0 1 2 3
     4 4 5 6 7
 
-There are an element `vertex` with three float properties and another element `face` with a list property of type int.
+It contains two elements, `vertex` that has three float properties and `face` that has a list property of integer.
 
-You can read this PLY data into arrays in imperative style as following:
+You can read the PLY file as following:
 
-    (cl-ply:with-ply-file (plyfile "/path/to/file.ply")
-      (let ((vertex-size (cl-ply:plyfile-element-size plyfile "vertex"))
-            (face-size (cl-ply:plyfile-element-size plyfile "face")))
-        (let ((vertices (make-array vertex-size))
-              (faces (make-array face-size)))
-          ;; read vertices
-          (loop repeat vertex-size
-                for i from 0
-             do (cl-ply:with-ply-element ((x y z) plyfile)
-                  (setf (aref vertices i) (list x y z))))
-          ;; read faces
-          (loop repeat face-size
-                for i from 0
-             do (cl-ply:with-ply-element (vertex-index plyfile)
-                  (setf (aref faces i) vertex-index)))
-          ;; return vertex and face arrays
-          (values vertices faces))))
-
-Additionally, cl-ply also provides a functional style interface.
-
-    (cl-ply:read-ply-elements "/path/to/file.ply" "vertex") => ((0.0 1.0 2.0) (3.0 4.0 5.0))
-    (cl-ply:read-ply-elements "/path/to/file.ply" "face") => ((0 1 2 3) (4 5 6 7))
-
-Although the imperative one would be superior in performance, the functional one would be convenient in some cases.
+    ;; open a PLY file, closed automatically when control leaves
+    (cl-ply:with-ply-for-reading (plyfile #P"/path/to/file.ply")
+      ;; read and print vertex elements
+      (loop repeat (cl-ply:ply-element-size plyfile "vertex")
+         do (format t "element vertex ~S~%"
+             (cl-ply:ply-read-element plyfile "vertex")))
+      ;; read and print face elements
+      (loop repeat (cl-ply:ply-element-size plyfile "face")
+         do (format t "element face ~S~%"
+             (cl-ply:ply-read-element plyfile "face"))))
 
 ## Installation
 
-You can install cl-ply via Quicklisp:
+Cl-ply can be installed via Quicklisp.
 
     (ql:quicklisp :cl-ply)
 
 ## API
 
-### [Macro] with-plyfile
+### [Macro] with-ply-for-reading
 
-    WITH-PLYFILE (plyfile filespec) &body body => results
+    WITH-PLY-FOR-READING (ply filespec) form* => results
 
-Opens a file stream to named by `filespec` and create a plyfile object, reading PLY headers from the file. The plyfile object is bound to `plyfile` variable. `with-plyfile` evaluates `body` as an implicit progn with `plyfile` and returns the result values. When control leaves the body, either normally and abnormally, the stream is automatically closed.
+Opens a file stream named by `filespec` and create a ply object, reading PLY headers from the file. The ply object is bound to `ply` variable. `with-ply` evaluates `form` as an implicit progn with `ply` and returns the result values. When control leaves the forms, either normally and abnormally, the file stream is automatically closed.
 
-### [Function] plyfile-element-size
+### [Function] ply-open-for-reading
 
-    PLYFILE-ELEMENT-SIZE plyfile element-name => size
+    OPEN-PLY-FOR-READING filespec => ply object
 
-Returns the number of elements in `plyfile` named by `element-name`.
+bla bla bla.
 
-### [Function] read-ply-element
+### [Function] ply-close
 
-    READ-PLY-ELEMENT plyfile => result
+    PLY-CLOSE ply => result
 
-Reads an element from `plyfile` and returns it as a list.
+bla bla bla.
 
-### [Macro] with-ply-element
+### [Function] ply-element-names
 
-    WITH-PLY-ELEMENT (vars plyfile) &body body => results
+    PLY-ELEMENT-NAMES ply => element-names
 
-Reads the next element of `plyfile` using `read-ply-element` in its expanded form and binds the result to `vars` with destructuring. Then evaluates `body` and returns its result values.
+Returns all names of elements in `ply`.
 
-### [Function] read-ply-elements
+### [Function] ply-element-size
 
-    READ-PLY-ELEMENTS filespec element-name => element-list
+    PLY-ELEMENT-SIZE ply element-name => size
 
-Reads all elements named by `element-name` from a file `filespec` and returns them as a list. The other elements before `element-name` element are skipped.
+Returns the number of elements named by `element-name` in `ply`.
+
+### [Function] ply-read-element
+
+    PLY-READ-ELEMENT ply element-name => result
+
+Reads an element of `element-name` from `ply` and returns as a list of its properties.
+
+### [Function] ply-comments
+
+    PLY-COMMENTS ply => comments
+
+Returns a list of comments in `ply`.
+
+### [Function] ply-obj-info
+
+    PLY-OBJ-INFO ply => obj_info
+
+Returns object information in `ply`.
 
 ## FAQ
 
 **Q. Does cl-ply support writing PLY format?**
 
-A. Currenly, only reading PLY format is supported.
+A. No. Currenly, only reading PLY format is supported.
 
 **Q. Does cl-ply support reading / writing PLY format in binary type?**
 
-A. Currently, only ASCII type is supported.
-
-**Q. Is an element able to be read which has scalar properties and list properties?**
-
-A. Since such element supposed to be nonsense in PLY format, cl-ply does not support reading it and causes an error.
+A. No. Currently, only ASCII type is supported.
 
 ## Reference
 
