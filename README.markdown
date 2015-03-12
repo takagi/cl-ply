@@ -42,7 +42,7 @@ You can read the PLY file as following:
 
 Cl-ply can be installed via Quicklisp.
 
-    (ql:quicklisp :cl-ply)
+    (ql:quickload :cl-ply)
 
 ## API
 
