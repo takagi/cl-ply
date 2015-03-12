@@ -48,51 +48,51 @@ Cl-ply can be installed via Quicklisp.
 
 ### [Macro] with-ply-for-reading
 
-    WITH-PLY-FOR-READING (ply filespec) form* => results
+    WITH-PLY-FOR-READING (var filespec) form* => results
 
-Opens a file stream named by `filespec` and create a ply object, reading PLY headers from the file. The ply object is bound to `ply` variable. `with-ply` evaluates `form` as an implicit progn with `ply` and returns the result values. When control leaves the forms, either normally and abnormally, the file stream is automatically closed.
+Opens a file stream named by `filespec` and creates a plyfile object, reading PLY headers from the file. The plyfile object is bound to `var`. `with-ply` evaluates `form` as an implicit progn with `var` and returns the result values. When control leaves the forms, either normally and abnormally, the file stream is automatically closed.
 
 ### [Function] ply-open-for-reading
 
-    OPEN-PLY-FOR-READING filespec => ply object
+    OPEN-PLY-FOR-READING filespec => plyfile
 
-bla bla bla.
+Opens a file stream named by `filespec`, creates a plyfile object and returns it. The plyfile object should be closed after its use.
 
 ### [Function] ply-close
 
-    PLY-CLOSE ply => result
+    PLY-CLOSE plyfile => result
 
-bla bla bla.
+Closes the plyfile object `plyfile`. The return value is that of standard's `close` function.
 
 ### [Function] ply-element-names
 
-    PLY-ELEMENT-NAMES ply => element-names
+    PLY-ELEMENT-NAMES plyfile => element-names
 
-Returns all names of elements in `ply`.
+Returns all names of elements in `plyfile`.
 
 ### [Function] ply-element-size
 
-    PLY-ELEMENT-SIZE ply element-name => size
+    PLY-ELEMENT-SIZE plyfile element-name => size
 
-Returns the number of elements named by `element-name` in `ply`.
+Returns the number of elements named by `element-name` in `plyfile`.
 
 ### [Function] ply-read-element
 
-    PLY-READ-ELEMENT ply element-name => result
+    PLY-READ-ELEMENT plyfile element-name => result
 
-Reads an element of `element-name` from `ply` and returns as a list of its properties.
+Reads an element of `element-name` from `plyfile` and returns as a list of its properties.
 
 ### [Function] ply-comments
 
-    PLY-COMMENTS ply => comments
+    PLY-COMMENTS plyfile => comments
 
-Returns a list of comments in `ply`.
+Returns a list of comments in `plyfile`.
 
 ### [Function] ply-obj-info
 
-    PLY-OBJ-INFO ply => obj_info
+    PLY-OBJ-INFO plyfile => obj_info
 
-Returns object information in `ply`.
+Returns object information in `plyfile`.
 
 ## FAQ
 
