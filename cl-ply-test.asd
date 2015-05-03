@@ -16,5 +16,8 @@
   :components ((:module "t"
                 :serial t
                 :components
-                ((:file "cl-ply"))))
-  :perform (load-op :after (op c) (asdf:clear-system c)))
+                ((:test-file "cl-ply"))))
+  :defsystem-depends-on (:prove-asdf)
+  :perform (test-op :after (op c)
+                    (funcall (intern #.(string :run-test-system) :prove.asdf) c)
+                    (asdf:clear-system c)))
