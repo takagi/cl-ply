@@ -1,5 +1,8 @@
 # Cl-Ply
 
+[![Build Status](https://travis-ci.org/takagi/cl-ply.svg?branch=master)](https://travis-ci.org/takagi/cl-ply)
+[![Coverage Status](https://coveralls.io/repos/takagi/cl-ply/badge.svg)](https://coveralls.io/r/takagi/cl-ply)
+
 Cl-ply is a library to handle PLY format which is also known as the Stanford Triangle Format.
 
 ## Example
